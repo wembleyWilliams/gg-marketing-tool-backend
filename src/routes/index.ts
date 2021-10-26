@@ -17,10 +17,10 @@ router.use(function timeLog(req: any, res: any, next: any) {
     next();
 });
 
-router.post('/find/business', (req: any, res: any) => {
+router.post('/find/business/:businessId', (req: any, res: any) => {
     log.info("Retrieving business data")
     log.info(req)
-    let businessId = req.body.businessId;
+    let businessId = req.params.businessId;
     retrieveBusiness(businessId)
         .then((retrievedBusiness: any)=>{
             res.send(retrievedBusiness)
@@ -38,8 +38,8 @@ router.post('/create/business', (req: any, res: any) => {
     })
 })
 
-router.delete('/delete/business', (req: any, res: any) => {
-    let businessId = req.body.businessId;
+router.delete('/delete/business/:businessId', (req: any, res: any) => {
+    let businessId = req.params.businessId;
     log.info("Deleting business data");
     removeBusiness(businessId)
         .then((value) => {
@@ -49,8 +49,8 @@ router.delete('/delete/business', (req: any, res: any) => {
     
 })
 
-router.post('/update/business', (req: any, res: any) => {
-    let businessId = req.body.businessId;
+router.post('/update/business/:businessId', (req: any, res: any) => {
+    let businessId = req.params.businessId;
     log.info("Missing implementation")
 })
 
