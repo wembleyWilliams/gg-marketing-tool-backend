@@ -18,6 +18,7 @@ router.use(function timeLog(req: any, res: any, next: any) {
 });
 
 router.post('/find/business', (req: any, res: any) => {
+    log.info("Retrieving business data")
     let businessId = req.body.businessId;
     retrieveBusiness(businessId)
         .then((retrievedBusiness: any)=>{
@@ -28,6 +29,7 @@ router.post('/find/business', (req: any, res: any) => {
 
 router.post('/create/business', (req: any, res: any) => {
     log.info("Creating business data");
+    log.info(req)
     createBusiness(req.body)
         .then((value) => {
         log.info(`Business document successfully created! ${value}`);
