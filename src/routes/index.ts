@@ -17,7 +17,7 @@ router.use(function timeLog(req: any, res: any, next: any) {
     next();
 });
 
-router.post('/find/business/:businessId', (req: any, res: any) => {
+router.get('/find/business/:businessId', (req: any, res: any) => {
     log.info("Retrieving business data")
     log.info(req)
     let businessId = req.params.businessId;
