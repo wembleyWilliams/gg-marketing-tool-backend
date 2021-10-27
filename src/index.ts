@@ -9,7 +9,6 @@ const app = express();
 require('dotenv').config()
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json())
-app.use(router)
 app.use((req: any, res: any, next: any) => {
     res.header('Access-Control-Allow-Origin','*')
     res.header('Access-Control-Allow-Headers','Origin',
@@ -22,6 +21,7 @@ app.use((req: any, res: any, next: any) => {
     }
     next();
 })
+app.use(router)
 
 app.listen(process.env.PORT, () => {
     log.info(`Server started on port ${process.env.PORT}` )
