@@ -9,7 +9,7 @@ const app = express();
 require('dotenv').config()
 app.use(bodyParser.json())
 app.use(router)
-app.use(cors({origin: false}))
+app.use(cors({origin: "*"}))
 
 app.listen(process.env.PORT, () => {
     log.info(`Server started on port ${process.env.PORT}` )
