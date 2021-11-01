@@ -3,7 +3,8 @@ import {Business} from "../helpers/types";
 import {ObjectId} from "mongodb";
 log.setDefaultLevel("INFO")
 const MongoClient = require('mongodb').MongoClient;
-const uri = `mongodb+srv://businessAdmin:sOhtbQfLAk@gg-business-database.gn1zj.mongodb.net/business-database?retryWrites=true&w=majority`
+
+const uri = `mongodb+srv://businessAdmin:sOhtbQfLAk@gg-business-database.gn1zj.mongodb.net/business-database?retryWrites=true&w=majority`;
 
 export const createBusiness = async (businessDetails: Business) => {
     const client = new MongoClient(encodeURI(uri),
@@ -30,6 +31,9 @@ export const createBusiness = async (businessDetails: Business) => {
             .catch((err: any) => {
                 log.error(`Error connecting to database => ${err}`);
             })
+            .finally(()=>{
+                client.close();
+            });
     return createdBusiness;
 }
 
@@ -58,7 +62,11 @@ export const retrieveBusiness = async (businessId: string) => {
             })
             .catch((err: any) => {
                 log.error(`Error connecting to database ${err}`)
+            })
+            .finally(()=>{
+                client.close();
             });
+        
         return retrievedBusiness;
 }
 
@@ -87,6 +95,9 @@ export const removeBusiness = async (businessId: string) => {
             })
             .catch((err: any) => {
                 log.error(`Error connecting to database ${err}`)
+            })
+            .finally(()=>{
+                client.close();
             });
     return retrievedBusiness;
 }
