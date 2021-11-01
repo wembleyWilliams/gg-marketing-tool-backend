@@ -19,23 +19,27 @@ router.use(function timeLog(req: any, res: any, next: any) {
 
 router.get('/find/business/:businessId', (req: any, res: any) => {
     log.info("Retrieving business data")
-    log.info(req)
     let businessId = req.params.businessId;
     retrieveBusiness(businessId)
         .then((retrievedBusiness: any)=>{
             res.send(retrievedBusiness)
             log.info(`Business document retrieved ${retrievedBusiness._id}`)
         })
+        .catch((err: any) => {
+            log.error(err)
+        })
 })
 
 router.post('/create/business', (req: any, res: any) => {
     log.info("Creating business data");
-    log.info(req)
     createBusiness(req.body)
         .then((value) => {
-        log.info(`Business document successfully created! ${value}`);
-        res.send(value);
-    })
+            log.info(`Business document successfully created! ${value}`);
+            res.send(value);
+        })
+        .catch((err: any) => {
+            log.error(err)
+        })
 })
 
 router.delete('/delete/business/:businessId', (req: any, res: any) => {
@@ -45,6 +49,9 @@ router.delete('/delete/business/:businessId', (req: any, res: any) => {
         .then((value) => {
             log.info(`Business document successfully removed! ${value}`);
             res.send(value);
+        })
+        .catch((err: any) => {
+            log.error(err)
         })
     
 })
