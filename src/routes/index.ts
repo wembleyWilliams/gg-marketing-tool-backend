@@ -1,4 +1,6 @@
 import {createBusiness, removeBusiness, retrieveBusiness} from "../database";
+import bcrypt from 'bcrypt';
+import {User} from "../common/types";
 
 const log = require('loglevel');
 log.setDefaultLevel("INFO")
@@ -21,6 +23,7 @@ router.get('/find/business/:businessId', (req: any, res: any) => {
     log.info("Retrieving business data")
     log.info(req)
     let businessId = req.params.businessId;
+    //TODO: ACTIVATE SCRAPE HERE
     retrieveBusiness(businessId)
         .then((retrievedBusiness: any)=>{
             res.send(retrievedBusiness)
