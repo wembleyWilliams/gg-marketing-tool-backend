@@ -1,7 +1,4 @@
 import {createBusiness, removeBusiness, retrieveBusiness} from "../database";
-import bcrypt from 'bcrypt';
-import {User} from "../common/types";
-
 const log = require('loglevel');
 log.setDefaultLevel("INFO")
 var express = require('express')
