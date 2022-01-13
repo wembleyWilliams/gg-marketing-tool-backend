@@ -1,7 +1,9 @@
 import user from "./router/user";
 import business from "./router/business";
 
+const passport = require("passport")
 const express = require("express");
+const session = require("express-session")
 const bodyParser = require("body-parser");
 const cors = require("cors")
 const log = require('loglevel');
@@ -10,7 +12,7 @@ log.setDefaultLevel("INFO")
 const app = express();
 require('dotenv').config()
 app.use(bodyParser.urlencoded({extended: false}))
-app.use(bodyParser.json())
+app.use(bodyParser.json({limit:'1mb'}))
 app.use(cors());
 app.use((req: any, res: any, next: any) => {
     res.header('Access-Control-Allow-Origin','*')
@@ -25,6 +27,15 @@ app.use((req: any, res: any, next: any) => {
     }
     next();
 })
+
+app.use(session({
+    secret:'secret',
+    resave: true,
+    saveUninitalized: true
+}))
+
+app.use(passport.initialize())
+app.use(passport.session())
 
 app.use('/user', user)
 app.use('/business', business)

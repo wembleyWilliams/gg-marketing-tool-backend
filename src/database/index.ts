@@ -7,6 +7,39 @@ const MongoClient = require('mongodb').MongoClient;
 
 const uri = `mongodb+srv://businessAdmin:sOhtbQfLAk@gg-business-database.gn1zj.mongodb.net/business-database?retryWrites=true&w=majority`;
 
+export const findUser = async (email: string) => {
+  const client = new MongoClient(encodeURI(uri),
+    {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
+  
+  let retrievedUser
+  log.info("Connecting to Database")
+  retrievedUser =
+    await client.connect()
+      .then(() => {
+        log.info("Database connected")
+        log.info("Attempting to find user record")
+        return client.db("business-database")
+      })
+      .then((db: any) => {
+        return db
+          .collection("users")
+          .findOne({'email': email })
+      })
+      .then((res: any) => {
+        return res;
+      })
+      .catch((err: any) => {
+        log.error(`Error connecting to database => ${err}`);
+      })
+      .finally(() => {
+        client.close();
+      });
+  return retrievedUser;
+}
+
 export const insertUser = async (user: User) => {
   const client = new MongoClient(encodeURI(uri),
     {
@@ -17,14 +50,14 @@ export const insertUser = async (user: User) => {
   log.info("Connecting to Database")
   createdUser =
     client.connect()
-      .then(()=>{
+      .then(() => {
         log.info("Database connected")
         log.info("Attempting to add user record")
         return client.db("business-database")
       })
       .then((db: any) => {
         return db.collection("users")
-                .insertOne(user)
+          .insertOne(user)
       })
       .then((res: any) => {
         return res;
