@@ -3,7 +3,7 @@ const passport = require('passport')
 const LocalStrategy = require('passport-local')
 const bcrypt = require('bcrypt')
 
-module.exports = () => {
+const passportService = (passport: any) => {
  passport.use(
     new LocalStrategy(({
       usernameField: 'email',
@@ -48,3 +48,5 @@ module.exports = () => {
       })
   });
 }
+
+export default passportService

@@ -5,8 +5,8 @@ import {User, Business} from "../common/types";
 log.setDefaultLevel("INFO")
 const MongoClient = require('mongodb').MongoClient;
 
-const uri = `mongodb+srv://businessAdmin:sOhtbQfLAk@gg-business-database.gn1zj.mongodb.net/business-database?retryWrites=true&w=majority`;
-
+// const uri = `mongodb+srv://businessAdmin:sOhtbQfLAk@gg-business-database.gn1zj.mongodb.net/business-database?retryWrites=true&w=majority`;
+const uri = `mongodb://businessAdmin:sOhtbQfLAk@gg-business-database-shard-00-00.gn1zj.mongodb.net:27017,gg-business-database-shard-00-01.gn1zj.mongodb.net:27017,gg-business-database-shard-00-02.gn1zj.mongodb.net:27017/myFirstDatabase?ssl=true&replicaSet=atlas-jd39z0-shard-0&authSource=admin&retryWrites=true&w=majority`
 export const findUser = async (email: string) => {
   const client = new MongoClient(encodeURI(uri),
     {

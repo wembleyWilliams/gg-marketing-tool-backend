@@ -1,19 +1,19 @@
 import user from "./router/user";
 import business from "./router/business";
-
+import passportService from './config/passport'
 const passport = require("passport")
 const express = require("express");
 const session = require("express-session")
 const bodyParser = require("body-parser");
 const cors = require("cors")
+
 const log = require('loglevel');
 log.setDefaultLevel("INFO")
 
 const app = express();
 
 //Passport config
-// passport.use('local',require("./config/passport"))
-require("./config/passport")(passport)
+passportService(passport)
 require('dotenv').config()
 app.use(bodyParser.urlencoded({extended: false}))
 app.use(bodyParser.json({limit:'1mb'}))
