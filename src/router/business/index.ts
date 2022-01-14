@@ -4,7 +4,7 @@ log.setDefaultLevel("INFO")
 const express = require('express')
 const business = express.Router()
 
-business.post('/:businessId', getBusiness)
+business.get('/:businessId', getBusiness)
 
 business.post('/update/:businessId', updateBusiness)
 

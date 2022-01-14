@@ -29,10 +29,12 @@ export const findUser = async (email: string) => {
           .findOne({'email': email })
       })
       .then((res: any) => {
+        log.info("User found")
         return res;
       })
       .catch((err: any) => {
         log.error(`Error connecting to database => ${err}`);
+        return err;
       })
       .finally(() => {
         client.close();
