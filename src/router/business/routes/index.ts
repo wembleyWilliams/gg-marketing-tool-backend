@@ -1,7 +1,8 @@
-import {insertBusiness, removeBusiness, retrieveBusiness} from "../../../database";
+import {insertBusiness, removeBusiness, retrieveBusiness, updateSocialHandles} from "../../../database";
 import log from 'loglevel';
 
 log.setDefaultLevel("INFO")
+
 
 export const deleteBusiness = (req: any, res: any) => {
   let businessId = req.params.businessId;
@@ -36,15 +37,24 @@ export const getBusiness = (req: any, res: any) => {
   retrieveBusiness(businessId)
     .then((retrievedBusiness: any) => {
       res.status(200).send(retrievedBusiness)
-      log.info(`Business document retrieved ${retrievedBusiness._id}`)
+      log.warn(`Business document retrieved ${retrievedBusiness._id}`)
     })
     .catch((err: any) => {
       log.error(err)
     })
 }
 
-export const updateBusiness = (req: any, res: any) => {
+export const modifyBusiness = (req: any, res: any) => {
   let businessId = req.params.businessId;
-  log.info("Missing implementation")
-  res.status(200).send("Missing implementation");
+  let businessHandle = req.body.handle;
+  // log.info("Missing implementation")
+  // res.status(200).send("Missing implementation");
+  
+  updateSocialHandles(businessId,businessHandle)
+    .then((updatedBusiness: any) => {
+      res.status(200).send(updatedBusiness)
+    })
+    .catch((err: any) => {
+      log.error(err)
+    })
 }

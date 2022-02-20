@@ -5,6 +5,7 @@ const passport = require("passport")
 const express = require("express");
 const session = require("express-session")
 const bodyParser = require("body-parser");
+const cookieParser = require("cookie-parser");
 const cors = require("cors")
 
 const log = require('loglevel');
@@ -36,9 +37,21 @@ app.use((req: any, res: any, next: any) => {
 
 app.use(session({
     secret:'secret',
-    resave: true,
-    // saveUninitalized: true
+    saveUninitialized: true,
+    resave: false,
+    cookie: {
+        httpOnly: true,
+        maxAge: 3600000
+    }
 }))
+
+app.use(cookieParser('secret'))
+
+//Debugging Middleware
+// app.use((req: any, res: any, next: any) => {
+//     console.log(req.session);
+//     next();
+// })
 
 //Passport Middleware
 app.use(passport.initialize())
