@@ -25,3 +25,8 @@ export interface User {
   password: string,
   profilePicture: string
 }
+
+export interface Logo {
+  data: string,
+  mime: string
+}

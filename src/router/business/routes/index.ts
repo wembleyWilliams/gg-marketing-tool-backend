@@ -1,4 +1,4 @@
-import {insertBusiness, removeBusiness, retrieveBusiness, updateSocialHandles} from "../../../database";
+import {insertBusiness, removeBusiness, retrieveBusiness, updateLogo, updateSocialHandles} from "../../../database";
 import log from 'loglevel';
 
 log.setDefaultLevel("INFO")
@@ -53,6 +53,19 @@ export const modifyBusiness = (req: any, res: any) => {
   updateSocialHandles(businessId,businessHandle)
     .then((updatedBusiness: any) => {
       res.status(200).send(updatedBusiness)
+    })
+    .catch((err: any) => {
+      log.error(err)
+    })
+}
+
+export const updateBusinessLogo = (req: any, res: any) => {
+  let businessId = req.params.businessId;
+  let logo = req.body;
+  
+  updateLogo(businessId, logo)
+    .then((updatedLogo: any) => {
+      res.status(200).send(updatedLogo)
     })
     .catch((err: any) => {
       log.error(err)

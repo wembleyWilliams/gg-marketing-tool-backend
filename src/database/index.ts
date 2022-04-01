@@ -1,6 +1,6 @@
 import log from 'loglevel';
 import {ObjectId} from "mongodb";
-import {User, Business, businessHandle} from "../common/types";
+import {User, Business, businessHandle, Logo} from "../common/types";
 
 log.setDefaultLevel("INFO")
 const MongoClient = require('mongodb').MongoClient;
@@ -27,7 +27,7 @@ export const findUser = async (email: string) => {
       .then((db: any) => {
         return db
           .collection("users")
-          .findOne({'email': email })
+          .findOne({'email': email})
       })
       .then((res: any) => {
         log.info("User found")
@@ -126,8 +126,8 @@ export const updateSocialHandles = async (businessId: string, addedHandle: busin
       .then(async (db: any) => {
         let updatedDocument =
           await db.collection("business-information")
-          .updateOne({"_id": {$ne: `${new ObjectId(businessId)}`}},
-            { $push: { "businessHandles": addedHandle }})
+            .updateOne({"_id": {$ne: `${new ObjectId(businessId)}`}},
+              {$push: {"businessHandles": addedHandle}})
         log.info("Document updated");
         log.info(updatedDocument)
         return updatedDocument
@@ -145,67 +145,101 @@ export const updateSocialHandles = async (businessId: string, addedHandle: busin
   return updatedBusiness;
 }
 
-export const retrieveBusiness = async (businessId: string) => {
-  const client = new MongoClient(uri,
+export const updateLogo = async (businessId: string, logo: Logo) => {
+  const client = new MongoClient(encodeURI(uri),
     {
       useNewUrlParser: true,
       useUnifiedTopology: true
     });
-  let retrievedBusiness;
   
+  let updatedLogo
   log.info("Connecting to Database")
-  retrievedBusiness =
-    client.connect()
+  updatedLogo =
+    await client.connect()
       .then(() => {
         log.info("Database connected")
-        log.info("Attempting to retrieve document")
-        return client.db("business-database");
+        log.info("Attempting to update user logo")
+        return client.db("business-database")
       })
       .then((db: any) => {
         return db.collection("business-information")
-          .findOne({_id: new ObjectId(businessId)})
-      })
-      .then((res: any) => {
-        return res;
-      })
-      .catch((err: any) => {
-        log.error(`Error connecting to database ${err}`)
-      })
-      .finally(() => {
-        client.close();
-      });
+          .updateOne({"_id": { $ne: `${new ObjectId(businessId)}`}},
+            {$set: {"logo": logo}})
+          .then((res: any) => {
+            return res;
+          })
+          .catch((err: any) => {
+            log.error(`Error connecting to database => ${err}`);
+          })
+          .finally(() => {
+            client.close();
+          });
+        
+        return updatedLogo;
+        
+      })}
   
-  return retrievedBusiness;
-}
-
-export const removeBusiness = async (businessId: string) => {
-  const client = new MongoClient(uri,
-    {
-      useNewUrlParser: true,
-      useUnifiedTopology: true
-    });
-  let retrievedBusiness;
-  
-  log.info("Connecting to Database")
-  retrievedBusiness =
-    client.connect()
-      .then(() => {
-        log.info("Database connected")
-        log.info("Attempting to retrieve document")
-        return client.db("business-database");
-      })
-      .then((db: any) => {
-        return db.collection("business-information")
-          .deleteOne({_id: new ObjectId(businessId)})
-      })
-      .then((res: any) => {
-        return res;
-      })
-      .catch((err: any) => {
-        log.error(`Error connecting to database ${err}`)
-      })
-      .finally(() => {
-        client.close();
+  export const retrieveBusiness = async (businessId: string) => {
+    const client = new MongoClient(uri,
+      {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
       });
-  return retrievedBusiness;
-}
+    let retrievedBusiness;
+    
+    log.info("Connecting to Database")
+    retrievedBusiness =
+      client.connect()
+        .then(() => {
+          log.info("Database connected")
+          log.info("Attempting to retrieve document")
+          return client.db("business-database");
+        })
+        .then((db: any) => {
+          return db.collection("business-information")
+            .findOne({_id: new ObjectId(businessId)})
+        })
+        .then((res: any) => {
+          return res;
+        })
+        .catch((err: any) => {
+          log.error(`Error connecting to database ${err}`)
+        })
+        .finally(() => {
+          client.close();
+        });
+    
+    return retrievedBusiness;
+  }
+  
+  export const removeBusiness = async (businessId: string) => {
+    const client = new MongoClient(uri,
+      {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+      });
+    let retrievedBusiness;
+    
+    log.info("Connecting to Database")
+    retrievedBusiness =
+      client.connect()
+        .then(() => {
+          log.info("Database connected")
+          log.info("Attempting to retrieve document")
+          return client.db("business-database");
+        })
+        .then((db: any) => {
+          return db.collection("business-information")
+            .deleteOne({_id: new ObjectId(businessId)})
+        })
+        .then((res: any) => {
+          return res;
+        })
+        .catch((err: any) => {
+          log.error(`Error connecting to database ${err}`)
+        })
+        .finally(() => {
+          client.close();
+        });
+    return retrievedBusiness;
+  }
