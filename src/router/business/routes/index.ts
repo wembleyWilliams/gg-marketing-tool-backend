@@ -65,7 +65,14 @@ export const updateBusinessLogo = (req: any, res: any) => {
   
   updateLogo(businessId, logo)
     .then((updatedLogo: any) => {
-      res.status(200).send(updatedLogo)
+      if (updatedLogo.modifiedCount > 0) {
+        log.info("Logo Document updated");
+        res.status(200).send("Logo Document updated")
+      } else {
+        res.status(502).send("Logo Document not updated")
+        log.info("Logo Document not updated")
+      }
+      
     })
     .catch((err: any) => {
       log.error(err)

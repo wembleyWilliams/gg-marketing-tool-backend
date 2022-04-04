@@ -160,32 +160,30 @@ export const updateLogo = async (businessId: string, logo: any) => {
         return client.db("business-database")
       })
       .then(async (db: any) => {
+        let updatedLogoDocument =
         await db.collection("business-information")
-            .updateOne(
-              {"_id": {$ne:`${new ObjectId(businessId)}`}},
-              {$set: {"logo": {
-                "mime":logo.mime, "data":logo.data
-              }}},
-              {"upsert": false})
-            .then((updatedLogoDocument: any) => {
-              if(updatedLogoDocument.modifiedCount > 0){
-                log.info("Logo Document updated");
-              } else {
-                log.info("Logo Document not updated")
+          .updateOne(
+            {"_id": {$ne: `${new ObjectId(businessId)}`}},
+            {
+              $set: {
+                "logo": {
+                  "mime": logo.mime, "data": logo.data
+                }
               }
-              return updatedLogoDocument
-            })
-            .then((res: any) => {
-              return res;
-            })
-            .catch((err: any) => {
-              log.error(`Error connecting to database => ${err}`);
-            })
-            .finally(() => {
-              client.close();
-            });
+            },
+            {"upsert": false})
+        return updatedLogoDocument
       })
-
+      .then((res: any) => {
+          return res;
+        })
+          .catch((err: any) => {
+            log.error(`Error connecting to database => ${err}`);
+          })
+          .finally(() => {
+            client.close();
+          });
+  
   return updatedLogo;
 }
 
