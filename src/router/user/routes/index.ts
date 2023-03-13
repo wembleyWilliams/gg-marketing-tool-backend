@@ -18,7 +18,15 @@ export const loginUser = (req: any, res: any, next: any) => {
       } else if (!user) {
         res.status(401).send(info);
       } else {
-        res.status(200).send(user)
+        
+        req.logIn(user, (err: any) =>{
+          if(err) throw err;
+          log.info("Session created")
+          log.info(req.session)
+          req.session.isAuth = true;
+          res.status(200).send({session: req.session, user: user})
+        })
+        
         next();
       }
     })(req, res, next)

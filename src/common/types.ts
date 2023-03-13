@@ -7,11 +7,15 @@ export type Business = {
     rating: Number,
     newFollowers: Number
   },
-  businessHandles: [{
-    profileName: String,
-    profileUrL: String,
-  }]
+  businessHandles: [businessHandle]
 }
+
+export type businessHandle =   {
+    profileName: string,
+    profileUrl: string,
+    socialMedia: string
+  }
+
 
 export interface User {
   firstname: string,
@@ -20,4 +24,9 @@ export interface User {
   email: string,
   password: string,
   profilePicture: string
+}
+
+export interface Logo {
+  data: string,
+  mime: string
 }
