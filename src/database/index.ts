@@ -1,16 +1,13 @@
 import log from 'loglevel';
 import {ObjectId} from "mongodb";
 import {User, Business, businessHandle, Logo} from "../common/types";
-import {data} from "cheerio/lib/api/attributes";
 
 log.setDefaultLevel("INFO")
 const MongoClient = require('mongodb').MongoClient;
 
 // const uri = `mongodb+srv://businessAdmin:sOhtbQfLAk@gg-business-database.gn1zj.mongodb.net/business-database?retryWrites=true&w=majority`;
-// const uri = `mongodb://businessAdmin:sOhtbQfLAk@gg-business-database-shard-00-00.gn1zj.mongodb.net:27017,gg-business-database-shard-00-01.gn1zj.mongodb.net:27017,gg-business-database-shard-00-02.gn1zj.mongodb.net:27017/myFirstDatabase?ssl=true&replicaSet=atlas-jd39z0-shard-0&authSource=admin&retryWrites=true&w=majority`
-
-const uri = `mongodb+srv://dbAdmin:mt130nSfBUP7Rcre@cluster0.ucpoax2.mongodb.net/?retryWrites=true&w=majority`
-
+const uri = `mongodb+srv://admin:LF6b4S53KkKRUJiv@zeus.aqfx8wo.mongodb.net/?retryWrites=true&w=majority`
+// const uri = `mongodb://admin:admin@gg-business-database-shard-00-00.gn1zj.mongodb.net:27017,gg-business-database-shard-00-01.gn1zj.mongodb.net:27017,gg-business-database-shard-00-02.gn1zj.mongodb.net:27017/myFirstDatabase?ssl=true&replicaSet=atlas-jd39z0-shard-0&authSource=admin&retryWrites=true&w=majority`
 export const findUser = async (email: string) => {
   const client = new MongoClient(encodeURI(uri),
     {
@@ -191,40 +188,27 @@ export const updateLogo = async (businessId: string, logo: any) => {
 }
 
 export const retrieveBusiness = async (businessId: string) => {
-    const client = new MongoClient(uri,
-        {
-            useNewUrlParser: true,
-            useUnifiedTopology: true
-        });
-
-  // try {
-  //     log.info("Connecting to Database")
-  //     log.info("Database connected")
-  //     log.info("Attempting to retrieve document")
-  //     const database = client.db("Kratos")
-  //     const businesses = database.collection("Business-Information")
-  //     const retrievedBusiness = await businesses.findOne({_id: new ObjectId(businessId)})
-  //     console.log(retrievedBusiness)
-  // } finally {
-  //       await client.close();
-  //   }
+  const client = new MongoClient(uri,
+    {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    });
 
 
-
-
-  let retrievedBusiness =
+  let retrievedBusiness;
+  log.info("Connecting to Database")
+  retrievedBusiness =
     client.connect()
       .then(() => {
         log.info("Database connected")
         log.info("Attempting to retrieve document")
-        return client.db("Kratos").collection("Business-Information");
+        return client.db("athenadb");
       })
       .then((db: any) => {
-        const info = db.findOne({_id: new ObjectId(businessId)})
-          return info;
+        return db.collection("businesses")
+          .findOne({_id: new ObjectId(businessId)})
       })
       .then((res: any) => {
-          console.log(res)
         return res;
       })
       .catch((err: any) => {
@@ -236,52 +220,6 @@ export const retrieveBusiness = async (businessId: string) => {
   
   return retrievedBusiness;
 }
-
-// import { MongoClient } from "mongodb";
-//
-// // Replace the uri string with your MongoDB deployment's connection string.
-// const uri = "<connection string uri>";
-//
-// const client = new MongoClient(uri);
-//
-// interface IMDB {
-//     rating: number;
-//     votes: number;
-//     id: number;
-// }
-//
-// export interface Movie {
-//     title: string;
-//     year: number;
-//     released: Date;
-//     plot: string;
-//     type: "movie" | "series";
-//     imdb: IMDB;
-// }
-//
-// type MovieSummary = Pick<Movie, "title" | "imdb">;
-//
-// async function run(): Promise<void> {
-//     try {
-//         const database = client.db("sample_mflix");
-//         // Specifying a Schema is always optional, but it enables type hinting on
-//         // finds and inserts
-//         const movies = database.collection<Movie>("movies");
-//
-//         const movie = await movies.findOne<MovieSummary>(
-//             { title: "The Room" },
-//             {
-//                 sort: { rating: -1 },
-//                 projection: { _id: 0, title: 1, imdb: 1 },
-//             }
-//         );
-//         console.log(movie);
-//     } finally {
-//         await client.close();
-//     }
-// }
-// run().catch(console.dir);
-
 
 export const removeBusiness = async (businessId: string) => {
   const client = new MongoClient(uri,

@@ -59,11 +59,12 @@ app.use(passport.session())
 
 app.use('/user', user)
 app.use('/business', business)
-app.get('/health' , (req: any, res: any)=>{
-    res.status(200).json('Health Check '+req.body)
+app.get('/health' , (req: any, res: any)=> {
+    res.status(200).json('Healthy!')
     log.info('Health Check')
 })
 
-app.listen(process.env.PORT, () => {
-    log.info(`Server started on port ${process.env.PORT}` )
+const HOST = '0.0.0.0';
+app.listen(process.env.PORT, HOST,() => {
+    log.info(`Server started on HOST:${HOST} and PORT:${process.env.PORT}` )
 })

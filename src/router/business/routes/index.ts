@@ -37,7 +37,7 @@ export const getBusiness = (req: any, res: any) => {
   retrieveBusiness(businessId)
     .then((retrievedBusiness: any) => {
       res.status(200).send(retrievedBusiness)
-      log.info(`Business document retrieved ${retrievedBusiness._id}`)
+      retrievedBusiness ? log.info(`Business document retrieved ${retrievedBusiness._id}`) : log.info('No business document retrieved')
     })
     .catch((err: any) => {
       log.error(err)
