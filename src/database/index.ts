@@ -6,8 +6,8 @@ log.setDefaultLevel("INFO")
 const MongoClient = require('mongodb').MongoClient;
 
 // const uri = `mongodb+srv://businessAdmin:sOhtbQfLAk@gg-business-database.gn1zj.mongodb.net/business-database?retryWrites=true&w=majority`;
-const uri = `mongodb://businessAdmin:sOhtbQfLAk@gg-business-database-shard-00-00.gn1zj.mongodb.net:27017,gg-business-database-shard-00-01.gn1zj.mongodb.net:27017,gg-business-database-shard-00-02.gn1zj.mongodb.net:27017/myFirstDatabase?ssl=true&replicaSet=atlas-jd39z0-shard-0&authSource=admin&retryWrites=true&w=majority`
-
+const uri = `mongodb+srv://admin:LF6b4S53KkKRUJiv@zeus.aqfx8wo.mongodb.net/?retryWrites=true&w=majority`
+// const uri = `mongodb://admin:admin@gg-business-database-shard-00-00.gn1zj.mongodb.net:27017,gg-business-database-shard-00-01.gn1zj.mongodb.net:27017,gg-business-database-shard-00-02.gn1zj.mongodb.net:27017/myFirstDatabase?ssl=true&replicaSet=atlas-jd39z0-shard-0&authSource=admin&retryWrites=true&w=majority`
 export const findUser = async (email: string) => {
   const client = new MongoClient(encodeURI(uri),
     {
@@ -193,18 +193,19 @@ export const retrieveBusiness = async (businessId: string) => {
       useNewUrlParser: true,
       useUnifiedTopology: true
     });
+
+
   let retrievedBusiness;
-  
   log.info("Connecting to Database")
   retrievedBusiness =
     client.connect()
       .then(() => {
         log.info("Database connected")
         log.info("Attempting to retrieve document")
-        return client.db("business-database");
+        return client.db("athenadb");
       })
       .then((db: any) => {
-        return db.collection("business-information")
+        return db.collection("businesses")
           .findOne({_id: new ObjectId(businessId)})
       })
       .then((res: any) => {
