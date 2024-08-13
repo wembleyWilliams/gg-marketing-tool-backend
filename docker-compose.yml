@@ -1,11 +1,13 @@
 version: '3'
 services:
-  app:
+  Server:
+    image: gg-marketing-tool-backend-app
     build: .
     ports:
       - "8080:8080"
     volumes:
       - .:/usr/src/app
+      - /usr/src/app/node_modules
     environment:
       NODE_ENV: development
     command: npm run start
