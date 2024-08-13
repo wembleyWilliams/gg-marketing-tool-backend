@@ -20,7 +20,7 @@ jobs:
 
     - name: Copy files to DigitalOcean Droplet
       run: |
-        sudo rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" ./ kratos@${{ secrets.DROPLET_IP }}:/root/gg-marketing-tool-backend
+        rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" ./ kratos@${{ secrets.DROPLET_IP }}:~/gg-marketing-tool-backend
 
     - name: SSH into DigitalOcean Droplet and deploy
       run: |
