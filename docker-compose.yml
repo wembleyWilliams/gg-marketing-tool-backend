@@ -9,4 +9,4 @@ services:
       - /usr/src/app/node_modules
     environment:
       NODE_ENV: production
-    command: npm start
+    command: npm run start
