@@ -25,7 +25,7 @@ jobs:
     - name: SSH into DigitalOcean Droplet and deploy
       run: |
         ssh -o StrictHostKeyChecking=no kratos@${{ secrets.DROPLET_IP }} << 'EOF'
-          cd /root/gg-marketing-tool-backend
+          cd ~/gg-marketing-tool-backend
           docker-compose down
           docker-compose up --build -d
         EOF
