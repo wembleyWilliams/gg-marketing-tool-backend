@@ -27,7 +27,7 @@ jobs:
        ssh -o StrictHostKeyChecking=no -o ConnectTimeout=500 kratos@${{ secrets.DROPLET_IP }} << 'EOF'
           cd ~/gg-marketing-tool-backend
           ls
-          npm run build
+          bash -l -c "npm run build"
           ls
         EOF
     - name: SSH into DigitalOcean Droplet and deploy
