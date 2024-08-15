@@ -107,3 +107,8 @@ dist
 .tern-port
 /.env.me
 /.env.production
+
+.env*
+.flaskenv*
+!.env.project
+!.env.vault
