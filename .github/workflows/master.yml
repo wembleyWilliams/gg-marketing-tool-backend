@@ -20,7 +20,7 @@ jobs:
 
     - name: Copy files to DigitalOcean Droplet
       run: |
-        rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" ./ kratos@${{ secrets.DROPLET_IP }}:~/gg-marketing-tool-backend
+        ssh -o StrictHostKeyChecking=no kratos@${{ secrets.DROPLET_IP }} "source ~/.bashrc && cd ~/gg-marketing-tool-backend && npm run build"
 
     - name: SSH into DigitalOcean Droplet and create dist/index.js
       run: | 
