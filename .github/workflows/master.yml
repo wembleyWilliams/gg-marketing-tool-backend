@@ -30,6 +30,7 @@ jobs:
           [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
           nvm use 14.16.0
           cd ~/gg-marketing-tool-backend
+          npm install
           npm run build
         EOF
 
