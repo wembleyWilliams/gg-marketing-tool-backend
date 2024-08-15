@@ -27,5 +27,5 @@ jobs:
         ssh -o StrictHostKeyChecking=no -o ConnectTimeout=500 kratos@${{ secrets.DROPLET_IP }} << 'EOF'
           cd ~/gg-marketing-tool-backend
           docker compose down
-          docker compose up --build -d --no-cache
+          docker compose up --build --no-cache
         EOF
