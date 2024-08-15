@@ -20,13 +20,13 @@ jobs:
 
     - name: Copy files to DigitalOcean Droplet
       run: |
-        ssh -o StrictHostKeyChecking=no kratos@${{ secrets.DROPLET_IP }} "source ~/.bashrc && cd ~/gg-marketing-tool-backend && npm run build"
+        rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" ./ kratos@${{ secrets.DROPLET_IP }}:~/gg-marketing-tool-backend
+    
+    - name: Run npm build on DigitalOcean Droplet
+      run: |
+        ssh -o StrictHostKeyChecking=no kratos@${{ secrets.DROPLET_IP }} "export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && \. \"$NVM_DIR/nvm.sh\" && cd ~/gg-marketing-tool-backend && npm run build"
 
-    - name: SSH into DigitalOcean Droplet and create dist/index.js
-      run: | 
-       ssh -o StrictHostKeyChecking=no -o ConnectTimeout=500 kratos@${{ secrets.DROPLET_IP }} "cd ~/gg-marketing-tool-backend && bash -l -c 'npm run build'"
-
-    - name: SSH into DigitalOcean Droplet and deploy
+    - name: SSH into DigitalOcean Droplet and deploy docker
       run: |
         ssh -o StrictHostKeyChecking=no -o ConnectTimeout=500 kratos@${{ secrets.DROPLET_IP }} << 'EOF'
           cd ~/gg-marketing-tool-backend
