@@ -22,13 +22,18 @@ jobs:
       run: |
         rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" ./ kratos@${{ secrets.DROPLET_IP }}:~/gg-marketing-tool-backend
 
+    - name: SSH into DigitalOcean Droplet and create dist/index.js
+      run: | 
+       ssh -o StrictHostKeyChecking=no -o ConnectTimeout=500 kratos@${{ secrets.DROPLET_IP }} << 'EOF'
+          cd ~/gg-marketing-tool-backend
+          ls
+          npm run build
+          ls
+        EOF
     - name: SSH into DigitalOcean Droplet and deploy
       run: |
         ssh -o StrictHostKeyChecking=no -o ConnectTimeout=500 kratos@${{ secrets.DROPLET_IP }} << 'EOF'
           cd ~/gg-marketing-tool-backend
-          ls
-          npm run build
           docker compose down
-          docker compose up --build 
-          ls
+          docker compose up --build -d
         EOF
