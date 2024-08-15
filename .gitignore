@@ -70,6 +70,9 @@ typings/
 
 # dotenv environment variables file
 .env
+.env.production
+.env.staging
+.env.qa
 .env.test
 
 # parcel-bundler cache (https://parceljs.org/)
@@ -102,3 +105,5 @@ dist
 
 # TernJS port file
 .tern-port
+/.env.me
+/.env.production
