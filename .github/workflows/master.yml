@@ -24,7 +24,7 @@ jobs:
     
     - name: Run npm build on DigitalOcean Droplet
       run: |
-        ssh -o StrictHostKeyChecking=no kratos@${{ secrets.DROPLET_IP }} "export NVM_DIR=\"$HOME/.nvm\" && [ -s \"$NVM_DIR/nvm.sh\" ] && \. \"$NVM_DIR/nvm.sh\" && cd ~/gg-marketing-tool-backend && npm run build"
+        ssh -o StrictHostKeyChecking=no kratos@${{ secrets.DROPLET_IP }} "cd ~/gg-marketing-tool-backend && /home/kratos/.nvm/versions/node/v14.16.0/bin/npm run build"
 
     - name: SSH into DigitalOcean Droplet and deploy docker
       run: |
