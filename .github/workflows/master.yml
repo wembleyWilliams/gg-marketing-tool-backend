@@ -1,0 +1,31 @@
+name: Deploy to Olympus Server
+
+on: 
+  push:
+    branches:
+      -  master
+jobs:
+  deploy:
+    runs-on: ubuntu-20.04
+    environment: Production
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      
+    - name: Set up SSH
+      uses: webfactory/ssh-agent@v0.7.0
+      with:
+        ssh-private-key: ${{ secrets.DROPLET_SSH_KEY }}
+
+    - name: Copy files to DigitalOcean Droplet
+      run: |
+        rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" ./ kratos@${{ secrets.DROPLET_IP }}:~/gg-marketing-tool-backend
+
+    - name: SSH into DigitalOcean Droplet and deploy
+      run: |
+        ssh -o StrictHostKeyChecking=no -o ConnectTimeout=300 kratos@${{ secrets.DROPLET_IP }} << 'EOF'
+          cd ~/gg-marketing-tool-backend
+          docker compose down
+          docker compose up --build -d
+        EOF
