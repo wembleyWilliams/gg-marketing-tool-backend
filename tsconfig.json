@@ -6,6 +6,8 @@
     "declaration": true,
     "sourceMap": true,
     "outDir": "./dist/",
+    "skipLibCheck": true,
+    "incremental": true,
     "strict": true /* Enable all strict type-checking options. */
   },
   "include": [
