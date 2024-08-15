@@ -1,4 +1,5 @@
-import mongoose from 'mongoose';
+// @ts-ignore
+import {mongoose} from 'mongoose';
 
 const { Schema } = mongoose;
 
