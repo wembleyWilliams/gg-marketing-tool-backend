@@ -21,8 +21,20 @@ jobs:
     - name: Copy files to DigitalOcean Droplet
       run: |
         rsync -avz --delete -e "ssh -o StrictHostKeyChecking=no" ./ kratos@${{ secrets.DROPLET_IP }}:~/gg-marketing-tool-backend
+    
+    - name: Run npm build on DigitalOcean Droplet
+      run: |
+        ssh -o StrictHostKeyChecking=no kratos@${{ secrets.DROPLET_IP }} << 'EOF'
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+          nvm use 14.16.0
+          cd ~/gg-marketing-tool-backend
+          npm install
+          npm run build
+        EOF
 
-    - name: SSH into DigitalOcean Droplet and deploy
+    - name: SSH into DigitalOcean Droplet and deploy docker
       run: |
         ssh -o StrictHostKeyChecking=no -o ConnectTimeout=500 kratos@${{ secrets.DROPLET_IP }} << 'EOF'
           cd ~/gg-marketing-tool-backend

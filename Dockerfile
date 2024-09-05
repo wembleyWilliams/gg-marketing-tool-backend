@@ -21,7 +21,6 @@ COPY . .
 RUN npx dotenv-vault@latest new vlt_38d1b90e651e02920c2f5a38636d8580fdaa3d850e5c1b232e2ec22b259fb6a6 -y
 
 # Pull in environment variables
-#RUN npx dotenv-vault@latest pull production .env -y
 RUN npx dotenv-vault@latest pull production .env --dotenvMe=me_d533c8217b202e3294f452e20a45ee935093610d3205dc85fb9ec39e73025fdc -y
 
 # Build TypeScript libraries
