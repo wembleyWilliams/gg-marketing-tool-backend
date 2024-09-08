@@ -1,5 +1,6 @@
 import {insertBusiness, removeBusiness, retrieveBusiness, updateLogo, updateSocialHandles} from "../../../database";
 import log from 'loglevel';
+import generateContactCard from "../../../utils/generateContactCard";
 
 log.setDefaultLevel("INFO")
 
@@ -77,4 +78,17 @@ export const updateBusinessLogo = (req: any, res: any) => {
     .catch((err: any) => {
       log.error(err)
     })
+}
+
+export const getContactCard = (req: any, res: any) => {
+    let vCard = generateContactCard(req.body)
+
+    //set content-type and disposition including desired filename
+    res.set('Content-Type', 'text/vcard; name="enesser.vcf"');
+    res.set('Content-Disposition', 'inline; filename="enesser.vcf"');
+
+    //send the response
+    console.log('Sending VCard')
+    console.log(vCard)
+    res.send(vCard.getFormattedString());
 }
