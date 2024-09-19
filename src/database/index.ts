@@ -5,8 +5,9 @@ import {BusinessData, UserData, VCardData} from "../models/types";
 log.setDefaultLevel("INFO")
 const MongoClient = require('mongodb').MongoClient;
 require('dotenv').config()
-
-const uri = process.env.MONGODB_URI? process.env.MONGODB_URI:''
+//TODO: change to dotenv
+// const uri = process.env.MONGODB_URI? process.env.MONGODB_URI:''
+const uri = 'mongodb+srv://admin:LF6b4S53KkKRUJiv@zeus.aqfx8wo.mongodb.net/?retryWrites=true&w=majority'
 /**
  * Creates a new business in the database.
  *
