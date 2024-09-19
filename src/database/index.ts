@@ -262,16 +262,16 @@ export const createVCardDB = async (vCardData: VCardData) => {
 // READ VCard by ID (GET)
 /**
  * Retrieves a VCard by its ID from the MongoDB database.
- * @param vCardId The ID of the VCard to be retrieved.
+ * @param ownerId The ID of the VCard to be retrieved.
  */
-export const getVCardByIdDB = async (vCardId: string) => {
+export const getVCardByIdDB = async (ownerId: string) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
     try {
         log.info("Connecting to Database");
         await client.connect();
         const db = client.db('athenadb');
 
-        const vCard = await db.collection('vcards').findOne({ "_id": new ObjectId(vCardId) });
+        const vCard = await db.collection('vcards').findOne({ "ownerId": new ObjectId(ownerId) });
         log.info('VCard found:', vCard);
         return vCard;
     } catch (error) {
