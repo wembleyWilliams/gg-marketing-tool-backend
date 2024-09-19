@@ -1,6 +1,5 @@
-import {insertBusiness, removeBusiness, retrieveBusiness, updateLogo, updateSocialHandles} from "../../../database";
+import {createBusinessDB, deleteBusinessDB, getBusinessByIdDB, updateLogoDB, updateSocialHandlesDB} from "../../../database";
 import log from 'loglevel';
-import generateContactCard from "../../../utils/generateContactCard";
 
 log.setDefaultLevel("INFO")
 
@@ -8,7 +7,7 @@ log.setDefaultLevel("INFO")
 export const deleteBusiness = (req: any, res: any) => {
   let businessId = req.params.businessId;
   log.info("Deleting business data");
-  removeBusiness(businessId)
+  deleteBusinessDB(businessId)
     .then((value) => {
       log.info(`Business document successfully removed! ${value}`);
       res.status(200).send(value);
@@ -21,7 +20,7 @@ export const deleteBusiness = (req: any, res: any) => {
 
 export const createBusiness = (req: any, res: any) => {
   log.info("Creating business data");
-  insertBusiness(req.body)
+  createBusinessDB(req.body)
     .then((value) => {
       log.info(`Business document successfully created! ${value}`);
       res.status(200).send(value);
@@ -35,7 +34,7 @@ export const getBusiness = (req: any, res: any) => {
   log.info("Retrieving business data")
   let businessId = req.params.businessId;
   //TODO: ACTIVATE SCRAPE HERE
-  retrieveBusiness(businessId)
+  getBusinessByIdDB(businessId)
     .then((retrievedBusiness: any) => {
       res.status(200).send(retrievedBusiness)
       retrievedBusiness ? log.info(`Business document retrieved ${retrievedBusiness._id}`) : log.info('No business document retrieved')
@@ -51,7 +50,7 @@ export const modifyBusiness = (req: any, res: any) => {
   // log.info("Missing implementation")
   // res.status(200).send("Missing implementation");
   
-  updateSocialHandles(businessId,businessHandle)
+  updateSocialHandlesDB(businessId,businessHandle)
     .then((updatedBusiness: any) => {
       res.status(200).send(updatedBusiness)
     })
@@ -64,7 +63,7 @@ export const updateBusinessLogo = (req: any, res: any) => {
   let businessId = req.params.businessId;
   let logo = req.body;
   
-  updateLogo(businessId, logo)
+  updateLogoDB(businessId, logo)
     .then((updatedLogo: any) => {
       if (updatedLogo.modifiedCount > 0) {
         log.info("Logo Document updated");
@@ -80,15 +79,3 @@ export const updateBusinessLogo = (req: any, res: any) => {
     })
 }
 
-export const getContactCard = (req: any, res: any) => {
-    let vCard = generateContactCard(req.body)
-
-    //set content-type and disposition including desired filename
-    res.set('Content-Type', 'text/vcard; name="enesser.vcf"');
-    res.set('Content-Disposition', 'inline; filename="enesser.vcf"');
-
-    //send the response
-    console.log('Sending VCard')
-    console.log(vCard)
-    res.send(vCard.getFormattedString());
-}

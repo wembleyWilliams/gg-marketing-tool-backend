@@ -1,6 +1,7 @@
 import user from "./router/user";
 import business from "./router/business";
 import passportService from './config/passport'
+import utility from "./router/utilities";
 const passport = require("passport")
 const express = require("express");
 const session = require("express-session")
@@ -47,7 +48,7 @@ app.use(session({
 
 app.use(cookieParser('secret'))
 
-//Debugging Middleware
+// Debugging Middleware
 // app.use((req: any, res: any, next: any) => {
 //     console.log(req.session);
 //     next();
@@ -59,6 +60,7 @@ app.use(passport.session())
 
 app.use('/user', user)
 app.use('/business', business)
+app.use('/util', utility)
 app.get('/health' , (req: any, res: any)=> {
     res.status(200).json('Healthy!')
     log.info('Health Check')

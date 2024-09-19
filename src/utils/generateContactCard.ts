@@ -1,10 +1,10 @@
-import {ContactInfo} from "../models/types";
+import {getVCardByIdDB} from "../database";
 
 const vCardsJS = require('vcards-js');
 
 
-const generateContactCard = (data: ContactInfo) => {
-
+const generateContactCard = async (id: string) => {
+let data : any = await getVCardByIdDB(id).then((res: any)=>{return res})
         // create a new vCard
         let vCard = vCardsJS();
 
@@ -84,7 +84,7 @@ const generateContactCard = (data: ContactInfo) => {
         vCard.version = data.version;
         vCard.isOrganiztion = true;
 
-        return vCard;
+        return vCard.getFormattedString();
 
 
 }

@@ -1,5 +1,5 @@
-import {findUser} from "../database";
-const passport = require('passport')
+import {getUserByEmailDB} from "../database";
+// const passport = require('passport')
 const LocalStrategy = require('passport-local')
 const bcrypt = require('bcrypt')
 
@@ -10,7 +10,7 @@ const passportService = (passport: any) => {
       passwordField: 'password'
     }),(email: any, password: any, done: any)=>{
       //Match User
-      findUser(email)
+        getUserByEmailDB(email)
         .then((user)=>{
           if(!user){
             return done(null, false, {message: 'Email is not registered'})
@@ -39,7 +39,7 @@ const passportService = (passport: any) => {
   });
 
   passport.deserializeUser((user: any, done: any) =>  {
-    findUser(user.email)
+    getUserByEmailDB(user.email)
       .then((user)=>{
         done(null, user)
       })
