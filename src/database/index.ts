@@ -271,7 +271,7 @@ export const getVCardByIdDB = async (ownerId: string) => {
         await client.connect();
         const db = client.db('athenadb');
 
-        const vCard = await db.collection('vcards').findOne({ "ownerId": new ObjectId(ownerId) });
+        const vCard = await db.collection('vcards').findOne({ "ownerId": ownerId });
         log.info('VCard found:', vCard);
         return vCard;
     } catch (error) {
