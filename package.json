@@ -14,10 +14,7 @@
     "test": "echo \"Error: no test specified\" && exit 0",
     "semantic-release": "semantic-release"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/wembleyWilliams/gg-marketing-tool-backend.git"
-  },
+  "repository":"https://github.com/wembleyWilliams/gg-marketing-tool-backend.git",
   "author": "Wembley Williams",
   "license": "ISC",
   "bugs": {
