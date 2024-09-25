@@ -9,10 +9,10 @@ on:
 
 jobs:
   # Development job with semantic-release and Docker deployment
-  development:
-    if: github.ref == 'refs/heads/dev'
+  Production:
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-20.04
-    environment: Development
+    environment: Production
     permissions:
       contents: write
     steps:
