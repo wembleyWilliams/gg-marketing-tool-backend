@@ -1,0 +1,23 @@
+{
+  "branches": ["dev","master","uat","testing"],
+  "repositoryUrl": "https://github.com/wembleyWilliams/gg-marketing-tool-backend.git",
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    "@semantic-release/changelog",
+    "@semantic-release/github",
+    "@semantic-release/npm",
+    [
+          "@semantic-release/git",
+          {
+            "assets": ["package.json", "version.txt", "CHANGELOG.md"]
+          }
+        ],
+        [
+          "@semantic-release/exec",
+          {
+            "publishCmd": "node update-version.js"
+          }
+        ]
+      ]
+}

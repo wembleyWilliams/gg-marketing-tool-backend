@@ -1,6 +1,6 @@
 {
   "name": "gg-marketing-tool-backend",
-  "version": "2.0.0",
+  "version": "0.2.0",
   "description": "",
   "main": "src/index.ts",
   "engines": {
@@ -11,7 +11,8 @@
     "dev": "ts-node  src/index.ts --trace-warnings",
     "start": "node  dist/index.js --trace-warnings",
     "build": "tsc -p .",
-    "test": "echo \"Error: no test specified\" && exit 0"
+    "test": "echo \"Error: no test specified\" && exit 0",
+    "semantic-release": "semantic-release"
   },
   "repository": {
     "type": "git",
@@ -46,8 +47,14 @@
     "vcards-js": "^2.10.0"
   },
   "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/exec": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^11.0.0",
+    "@semantic-release/npm": "^12.0.1",
     "@types/bcrypt": "^5.0.0",
     "@types/passport-local": "^1.0.34",
-    "bcrypt": "^5.0.1"
+    "bcrypt": "^5.0.1",
+    "semantic-release": "^24.1.1"
   }
 }
