@@ -1,13 +1,16 @@
-import log from 'loglevel';
+import logger from '../logger/logger';
 import {ObjectId} from "mongodb";
 import {BusinessData, UserData, VCardData} from "../models/types";
 
-log.setDefaultLevel("INFO")
+const dbLogger = logger.child({context:'databaseService'})
+
 const MongoClient = require('mongodb').MongoClient;
 require('dotenv').config()
 //TODO: change to dotenv
 // const uri = process.env.MONGODB_URI? process.env.MONGODB_URI:''
 const uri = 'mongodb+srv://admin:LF6b4S53KkKRUJiv@zeus.aqfx8wo.mongodb.net/?retryWrites=true&w=majority'
+
+
 /**
  * Creates a new business in the database.
  *
@@ -20,24 +23,23 @@ export const createBusinessDB = async (businessDetails: BusinessData) => {
         useUnifiedTopology: true
     });
 
-    let createdBusiness;
-    log.info("Connecting to Database");
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        dbLogger.info("Database connected, inserting business data");
 
-    createdBusiness = client.connect()
-        .then(() => {
-            log.info("Database connected");
-            log.info("Attempting to add business record");
-            return client.db("athenadb");
-        })
-        .then((db: any) => {
-            return db.collection("businesses").insertOne(businessDetails);
-        })
-        .finally(() => {
-            client.close();
-            log.info("Database connection closed");
-        });
+        const db = client.db("athenadb");
+        const result = await db.collection("businesses").insertOne(businessDetails);
 
-    return createdBusiness;
+        dbLogger.info("Business created:", result);
+        return result;
+    } catch (error) {
+        dbLogger.error({ message: 'Error creating business', error });
+        throw error;  // Re-throw the error after logging
+    } finally {
+        await client.close();
+        dbLogger.info("Database connection closed");
+    }
 };
 
 /**
@@ -53,24 +55,23 @@ export const updateBusinessDB = async (id: ObjectId, updateDetails: Partial<Busi
         useUnifiedTopology: true
     });
 
-    let updatedBusiness;
-    log.info("Connecting to Database");
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db("athenadb");
 
-    updatedBusiness = client.connect()
-        .then(() => {
-            log.info("Database connected");
-            log.info("Attempting to update business record");
-            return client.db("athenadb");
-        })
-        .then((db: any) => {
-            return db.collection("businesses").updateOne({ _id: id }, { $set: updateDetails });
-        })
-        .finally(() => {
-            client.close();
-            log.info("Database connection closed");
-        });
+        dbLogger.info("Updating business with ID:", id);
+        const result = await db.collection("businesses").updateOne({ _id: id }, { $set: updateDetails });
 
-    return updatedBusiness;
+        dbLogger.info("Business updated:", result);
+        return result;
+    } catch (error) {
+        dbLogger.error({ message: 'Error updating business', error });
+        throw error;
+    } finally {
+        await client.close();
+        dbLogger.info("Database connection closed");
+    }
 };
 
 /**
@@ -86,12 +87,12 @@ export const deleteBusinessDB = async (id: ObjectId) => {
     });
 
     let deleteResult;
-    log.info("Connecting to Database");
+    dbLogger.info("Connecting to Database");
 
     deleteResult = client.connect()
         .then(() => {
-            log.info("Database connected");
-            log.info("Attempting to delete business record");
+            dbLogger.info("Database connected");
+            dbLogger.info("Attempting to delete business record");
             return client.db("athenadb");
         })
         .then((db: any) => {
@@ -99,7 +100,7 @@ export const deleteBusinessDB = async (id: ObjectId) => {
         })
         .finally(() => {
             client.close();
-            log.info("Database connection closed");
+            dbLogger.info("Database connection closed");
         });
 
     return deleteResult;
@@ -120,27 +121,27 @@ export const updateSocialHandlesDB = async (businessId: string, addedHandle: any
 
     let updatedBusiness;
 
-    log.info("Connecting to Database");
+    dbLogger.info("Connecting to Database");
 
     updatedBusiness = client.connect()
         .then(() => {
-            log.info("Database connected");
-            log.info("Attempting to update social media handles");
+            dbLogger.info("Database connected");
+            dbLogger.info("Attempting to update social media handles");
             return client.db("athenadb");
         })
         .then(async (db: any) => {
             let updatedDocument = await db.collection("businesses")
                 .updateOne({ "_id": { $ne: `${new ObjectId(businessId)}` } }, { $push: { "businessHandles": addedHandle } });
 
-            log.info("Document updated");
-            log.info(updatedDocument);
+            dbLogger.info("Document updated");
+            dbLogger.info(updatedDocument);
             return updatedDocument;
         })
         .then((res: any) => {
             return res;
         })
         .catch((err: any) => {
-            log.error(`Error connecting to database: ${err}`);
+            dbLogger.error(`Error connecting to database: ${err}`);
         })
         .finally(() => {
             client.close();
@@ -162,12 +163,12 @@ export const updateLogoDB = async (businessId: string, logo: any): Promise<any> 
         useUnifiedTopology: true
     });
 
-    log.info("Connecting to Database");
+    dbLogger.info("Connecting to Database");
 
     return await client.connect()
         .then(() => {
-            log.info("Database connected");
-            log.info("Attempting to update user logo");
+            dbLogger.info("Database connected");
+            dbLogger.info("Attempting to update user logo");
             return client.db("athenadb");
         })
         .then(async (db: any) => {
@@ -189,7 +190,7 @@ export const updateLogoDB = async (businessId: string, logo: any): Promise<any> 
             return res;
         })
         .catch((err: any) => {
-            log.error(`Error connecting to database: ${err}`);
+            dbLogger.error(`Error connecting to database: ${err}`);
         })
         .finally(() => {
             client.close();
@@ -210,12 +211,12 @@ export const getBusinessByIdDB = async (businessId: string): Promise<object> => 
     });
 
   let retrievedBusiness;
-  log.info("Connecting to Database")
+  dbLogger.info("Connecting to Database")
   retrievedBusiness =
     client.connect()
       .then(() => {
-        log.info("Database connected")
-        log.info("Attempting to retrieve document")
+        dbLogger.info("Database connected")
+        dbLogger.info("Attempting to retrieve document")
         return client.db("athenadb");
       })
       .then((db: any) => {
@@ -226,7 +227,7 @@ export const getBusinessByIdDB = async (businessId: string): Promise<object> => 
         return res;
       })
       .catch((err: any) => {
-        log.error(`Error connecting to database ${err}`)
+        dbLogger.error(`Error connecting to database ${err}`)
       })
       .finally(() => {
         client.close();
@@ -243,19 +244,19 @@ export const getBusinessByIdDB = async (businessId: string): Promise<object> => 
 export const createVCardDB = async (vCardData: VCardData) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
     try {
-        log.info("Connecting to Database");
+        dbLogger.info("Connecting to Database");
         await client.connect();
         const db = client.db('athenadb');
 
         const result = await db.collection('vcards').insertOne(vCardData);
-        log.info('VCard created:', result);
+        dbLogger.info('VCard created:', result);
         return result;
     } catch (error) {
-        log.error({ message: 'Error creating VCard', error });
+        dbLogger.error({ message: 'Error creating VCard', error });
         return null;
     } finally {
         await client.close();
-        log.info("Connection closed");
+        dbLogger.info("Connection closed");
     }
 };
 
@@ -267,19 +268,19 @@ export const createVCardDB = async (vCardData: VCardData) => {
 export const getVCardByIdDB = async (ownerId: string) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
     try {
-        log.info("Connecting to Database");
+        dbLogger.info("Connecting to Database");
         await client.connect();
         const db = client.db('athenadb');
 
         const vCard = await db.collection('vcards').findOne({ "ownerId": ownerId });
-        log.info('VCard found:', vCard);
+        dbLogger.info('VCard found: ',ownerId );
         return vCard;
     } catch (error) {
-        log.error({ message: 'Error retrieving VCard', error });
+        dbLogger.error({ message: 'Error retrieving VCard', error });
         return null;
     } finally {
         await client.close();
-        log.info("Connection closed");
+        dbLogger.info("Connection closed");
     }
 };
 
@@ -292,7 +293,7 @@ export const getVCardByIdDB = async (ownerId: string) => {
 export const updateVCardDB = async (vCardId: string, updatedVCard: Partial<VCardData>) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
     try {
-        log.info("Connecting to Database");
+        dbLogger.info("Connecting to Database");
         await client.connect();
         const db = client.db('athenadb');
 
@@ -301,14 +302,14 @@ export const updateVCardDB = async (vCardId: string, updatedVCard: Partial<VCard
             { $set: updatedVCard },
             { upsert: false }
         );
-        log.info('VCard updated:', result);
+        dbLogger.info('VCard updated:', result);
         return result;
     } catch (error) {
-        log.error({ message: 'Error updating VCard', error });
+        dbLogger.error({ message: 'Error updating VCard', error });
         return null;
     } finally {
         await client.close();
-        log.info("Connection closed");
+        dbLogger.info("Connection closed");
     }
 };
 
@@ -320,19 +321,19 @@ export const updateVCardDB = async (vCardId: string, updatedVCard: Partial<VCard
 export const deleteVCardDB = async (vCardId: string) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
     try {
-        log.info("Connecting to Database");
+        dbLogger.info("Connecting to Database");
         await client.connect();
         const db = client.db('athenadb');
 
         const result = await db.collection('vcards').deleteOne({ "_id": new ObjectId(vCardId) });
-        log.info('VCard deleted:', result);
+        dbLogger.info('VCard deleted:', result);
         return result;
     } catch (error) {
-        log.error({ message: 'Error deleting VCard', error });
+        dbLogger.error({ message: 'Error deleting VCard', error });
         return null;
     } finally {
         await client.close();
-        log.info("Connection closed");
+        dbLogger.info("Connection closed");
     }
 };
 
@@ -343,19 +344,19 @@ export const deleteVCardDB = async (vCardId: string) => {
 export const listVCardsDB = async () => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
     try {
-        log.info("Connecting to Database");
+        dbLogger.info("Connecting to Database");
         await client.connect();
         const db = client.db('athenadb');
 
         const vCards = await db.collection('vcards').find().toArray();
-        log.info('VCards found:', vCards);
+        dbLogger.info('VCards found:', vCards);
         return vCards;
     } catch (error) {
-        log.error({ message: 'Error listing VCARDs', error });
+        dbLogger.error({ message: 'Error listing VCARDs', error });
         return null;
     } finally {
         await client.close();
-        log.info("Connection closed");
+        dbLogger.info("Connection closed");
     }
 };
 
@@ -369,7 +370,7 @@ export const createUserDB = async (newUser: UserData) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
     try {
-        console.log("Connecting to Database");
+        dbLogger.info("Connecting to Database");
         await client.connect();
         const db = client.db('athenadb');
 
@@ -377,15 +378,15 @@ export const createUserDB = async (newUser: UserData) => {
         newUser.updatedAt = new Date();  // Set update date
 
         const result = await db.collection('users').insertOne(newUser);
-        console.log('User created:', result);
+        dbLogger.info('User created:', result);
         return result;
 
     } catch (error) {
-        console.error({ message: 'Error creating User', error });
+        dbLogger.error({ message: 'Error creating User', error });
         return null;
     } finally {
         await client.close();
-        console.log("Connection closed");
+        dbLogger.info("Connection closed");
     }
 };
 
@@ -398,20 +399,20 @@ export const getUserByIdDB = async (userId: string) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
     try {
-        console.log("Connecting to Database");
+        dbLogger.info("Connecting to Database");
         await client.connect();
         const db = client.db('athenadb');
 
         const user = await db.collection('users').findOne({ "_id": new ObjectId(userId) });
-        console.log('User found:', user);
+        dbLogger.info('User found:', user);
         return user;
 
     } catch (error) {
-        console.error({ message: 'Error retrieving User', error });
+        dbLogger.error({ message: 'Error retrieving User', error });
         return null;
     } finally {
         await client.close();
-        console.log("Connection closed");
+        dbLogger.info("Connection closed");
     }
 };
 
@@ -424,20 +425,20 @@ export const getUserByEmailDB = async (userEmail: string) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
     try {
-        console.log("Connecting to Database");
+        dbLogger.info("Connecting to Database");
         await client.connect();
         const db = client.db('athenadb');
 
         const user = await db.collection('users').findOne({ "email": userEmail });
-        console.log('User found:', user);
+        dbLogger.info('User found:', user);
         return user;
 
     } catch (error) {
-        console.error({ message: 'Error retrieving User', error });
+        dbLogger.error({ message: 'Error retrieving User', error });
         return null;
     } finally {
         await client.close();
-        console.log("Connection closed");
+        dbLogger.info("Connection closed");
     }
 };
 
@@ -451,7 +452,7 @@ export const updateUserDB = async (userId: string, updatedUser: Partial<UserData
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
     try {
-        console.log("Connecting to Database");
+        dbLogger.info("Connecting to Database");
         await client.connect();
         const db = client.db('athenadb');
 
@@ -465,66 +466,69 @@ export const updateUserDB = async (userId: string, updatedUser: Partial<UserData
             { "upsert": false }
         );
 
-        console.log('User updated:', result);
+        dbLogger.info('User updated:', result);
         return result;
 
     } catch (error) {
-        console.error({ message: 'Error updating User', error });
+        dbLogger.error({ message: 'Error updating User', error });
         return null;
     } finally {
         await client.close();
-        console.log("Connection closed");
+        dbLogger.info("Connection closed");
     }
 };
 
 // DELETE User by ID (DELETE)
 /**
  * Deletes a user from the MongoDB database by their ID.
+ *
  * @param userId The ID of the user to be deleted.
  */
 export const deleteUserDB = async (userId: string) => {
-    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    const client = new MongoClient(encodeURI(uri), { useNewUrlParser: true, useUnifiedTopology: true });
 
     try {
-        console.log("Connecting to Database");
+        dbLogger.info("Connecting to Database");
         await client.connect();
         const db = client.db('athenadb');
 
-        const result = await db.collection('users').deleteOne({ "_id": new ObjectId(userId) });
-        console.log('User deleted:', result);
-        return result;
+        dbLogger.info('Deleting user with ID:', userId);
+        const result = await db.collection('users').deleteOne({ _id: new ObjectId(userId) });
 
+        dbLogger.info('User deleted:', result);
+        return result;
     } catch (error) {
-        console.error({ message: 'Error deleting User', error });
-        return null;
+        dbLogger.error({ message: 'Error deleting user', error });
+        throw error;
     } finally {
         await client.close();
-        console.log("Connection closed");
+        dbLogger.info("Database connection closed");
     }
 };
 
-// LIST all Users (GET)
 /**
  * Retrieves all users from the MongoDB database.
  */
 export const listUsersDB = async () => {
-    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    const client = new MongoClient(encodeURI(uri), { useNewUrlParser: true, useUnifiedTopology: true });
 
     try {
-        console.log("Connecting to Database");
+        dbLogger.info("Connecting to Database");
         await client.connect();
         const db = client.db('athenadb');
 
+        dbLogger.info('Fetching all users');
         const users = await db.collection('users').find().toArray();
-        console.log('Users found:', users);
-        return users;
 
+        dbLogger.info('Users found:', users);
+        return users;
     } catch (error) {
-        console.error({ message: 'Error listing Users', error });
-        return null;
+        dbLogger.error({ message: 'Error listing users', error });
+        throw error;
     } finally {
         await client.close();
-        console.log("Connection closed");
+        dbLogger.info("Database connection closed");
     }
 };
+
 
