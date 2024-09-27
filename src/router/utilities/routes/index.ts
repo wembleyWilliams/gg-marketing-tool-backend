@@ -1,22 +1,29 @@
-import log from 'loglevel';
 import {Request, Response} from 'express';
 import generateContactCard from "../../../utils/generateContactCard";
+import logger from '../../../logger/logger';
 
-log.setDefaultLevel("INFO")
+const vCardLogger = logger.child({context:'vcardService'})
 
 export const getVCard = async (req: Request, res: Response) => {
+    let ownerId = req.body.ownerId
 
-    let vCard = await generateContactCard(req.body.ownerId)
-        .then((res)=>{
-            return res
+    if(ownerId){
+        //set content-type and disposition including desired filename
+        res.set('Content-Type', `text/vcard; name="${req.body.ownerId}.vcf"`);
+        res.set('Content-Disposition', `inline; filename="${req.body.ownerId}.vcf"`);
+
+        let vCard = await generateContactCard(ownerId)
+            .then((res)=>{
+                return res
             })
-
-    //set content-type and disposition including desired filename
-    res.set('Content-Type', `text/vcard; name="${req.body.ownerId}.vcf"`);
-    res.set('Content-Disposition', `inline; filename="${req.body.ownerId}.vcf"`);
-
-    //send the response
-    console.log('Sending VCard')
-    console.log(vCard)
-    res.send(vCard);
+            .catch((err: any) => {
+                vCardLogger.error('Error retrieving card information', { error: err });
+                res.status(500).send({ message: 'Error retrieving card information', error: err });
+            })
+        //send the response
+        res.status(200).send(vCard);
+    } else {
+        vCardLogger.error('Error retrieving card information');
+        res.status(500).send({message: 'Unable to find Id'})
+    }
 }

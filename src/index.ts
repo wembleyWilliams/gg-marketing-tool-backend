@@ -2,6 +2,9 @@ import user from "./router/user";
 import business from "./router/business";
 import passportService from './config/passport'
 import utility from "./router/utilities";
+import requestLogger from "./logger/requestLogger";
+import logger from "./logger/logger";
+
 const passport = require("passport")
 const express = require("express");
 const session = require("express-session")
@@ -9,8 +12,7 @@ const bodyParser = require("body-parser");
 const cookieParser = require("cookie-parser");
 const cors = require("cors")
 
-const log = require('loglevel');
-log.setDefaultLevel("INFO")
+const mainLogger = logger.child({context:'main'})
 
 const app = express();
 
@@ -48,11 +50,8 @@ app.use(session({
 
 app.use(cookieParser('secret'))
 
-// Debugging Middleware
-// app.use((req: any, res: any, next: any) => {
-//     console.log(req.session);
-//     next();
-// })
+//Logs all requests
+app.use(requestLogger)
 
 //Passport Middleware
 app.use(passport.initialize())
@@ -63,10 +62,10 @@ app.use('/business', business)
 app.use('/util', utility)
 app.get('/health' , (req: any, res: any)=> {
     res.status(200).json('Healthy!')
-    log.info('Health Check')
+    mainLogger.info('Health Check')
 })
 
 const HOST = '0.0.0.0';
 app.listen(process.env.PORT, HOST,() => {
-    log.info(`Server started on HOST:${HOST} and PORT:${process.env.PORT}` )
+    mainLogger.info(`Server started on HOST:${HOST} and PORT:${process.env.PORT}` )
 })
