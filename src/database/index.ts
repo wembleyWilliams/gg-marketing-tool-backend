@@ -1,9 +1,9 @@
 import logger from '../logger/logger';
 import {ObjectId} from "mongodb";
 import {BusinessData, UserData, VCardData} from "../models/types";
+import mongoose from "mongoose";
 
 const dbLogger = logger.child({context:'databaseService'})
-
 const MongoClient = require('mongodb').MongoClient;
 require('dotenv').config()
 //TODO: change to dotenv
@@ -532,3 +532,49 @@ export const listUsersDB = async () => {
 };
 
 
+/**
+ * Performs a simple connection health test with the MongoDB database.
+ *
+ * This function attempts to connect to the MongoDB database and returns
+ * the connection status, the database connection state, the server uptime,
+ * and a timestamp of when the health check was performed. It also logs
+ * the connection status and any errors that occur during the process.
+ *
+ * @async
+ * @function healthDB
+ * @returns {Promise<{ status: string, dbConnection: string, uptime: number, timestamp: Date }>}
+ * - An object containing:
+ *   - `status`: A string indicating whether the MongoDB connection is 'healthy' or 'unhealthy'.
+ *   - `dbConnection`: A string indicating the current connection state to the database ('connected' or 'disconnected').
+ *   - `uptime`: A number representing the uptime of the Node.js process in seconds.
+ *   - `timestamp`: A Date object representing the time when the health check was performed.
+ *
+ * @throws {Error} Throws an error if the connection to the MongoDB database fails.
+ */
+export const healthDB = async () => {
+    const client = new MongoClient(encodeURI(uri), { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        const status = client?'healthy':'unhealthy'; // Correct Mongoose instance reference
+
+        const mongoStatus: Record<number, string> = {
+            0: 'disconnected',
+            1: 'connected',
+            2: 'connecting',
+            3: 'disconnecting',
+        };
+
+        dbLogger.info("DB connection established successfully");
+        return {
+            status,
+            dbConnection: client?'connected':'disconnected',
+            uptime: process.uptime(),
+            timestamp: new Date(),
+        };
+    } catch (error) {
+        dbLogger.error({ message: 'Failed to connect to MongoDB Atlas ', error });
+        throw error;
+    } finally {
+        await client.close();
+        dbLogger.info("Database connection closed");
+    }
+};

@@ -4,6 +4,8 @@ import passportService from './config/passport'
 import utility from "./router/utilities";
 import requestLogger from "./logger/requestLogger";
 import logger from "./logger/logger";
+import {healthDB} from "./database";
+
 
 const passport = require("passport")
 const express = require("express");
@@ -60,9 +62,21 @@ app.use(passport.session())
 app.use('/user', user)
 app.use('/business', business)
 app.use('/util', utility)
-app.get('/health' , (req: any, res: any)=> {
-    res.status(200).json('Healthy!')
-    mainLogger.info('Health Check')
+app.get('/health' , async (req: any, res: any)=> {
+    try {
+
+        const healthReport: { dbConnection: string; status: string; uptime: number; timestamp: Date } = await healthDB();
+        mainLogger.info(`Health check performed: ${JSON.stringify(healthReport)}`);
+
+        if (healthReport.status === 'healthy') {
+            res.status(200).json(healthReport);
+        } else {
+            res.status(503).json(healthReport);
+        }
+    } catch (error) {
+        logger.error('Error during health check', error);
+        res.status(500).json({ status: 'error', message: 'Health check failed' });
+    }
 })
 
 const HOST = '0.0.0.0';
