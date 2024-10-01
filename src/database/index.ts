@@ -1,7 +1,6 @@
 import logger from '../logger/logger';
 import {ObjectId} from "mongodb";
 import {BusinessData, UserData, VCardData} from "../models/types";
-import mongoose from "mongoose";
 
 const dbLogger = logger.child({context:'databaseService'})
 const MongoClient = require('mongodb').MongoClient;
@@ -241,7 +240,7 @@ export const getBusinessByIdDB = async (businessId: string): Promise<object> => 
  * Inserts a new VCard into the MongoDB database.
  * @param vCardData The VCard object to be inserted.
  */
-export const createVCardDB = async (vCardData: VCardData) => {
+export const createVCardDB = async (vCardData: any) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
     try {
         dbLogger.info("Connecting to Database");
@@ -286,11 +285,11 @@ export const getVCardByIdDB = async (ownerId: string) => {
 
 // UPDATE VCard by ID (PUT)
 /**
- * Updates a VCard in the MongoDB database by its ID.
- * @param vCardId The ID of the VCard to be updated.
+ * Updates a VCard in the MongoDB database by its Owner ID.
+ * @param ownerId The ID of the VCard to be updated.
  * @param updatedVCard The VCard object containing the new data to be set.
  */
-export const updateVCardDB = async (vCardId: string, updatedVCard: Partial<VCardData>) => {
+export const updateVCardDB = async (ownerId: string, updatedVCard: Partial<VCardData>) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
     try {
         dbLogger.info("Connecting to Database");
@@ -298,7 +297,7 @@ export const updateVCardDB = async (vCardId: string, updatedVCard: Partial<VCard
         const db = client.db('athenadb');
 
         const result = await db.collection('vcards').updateOne(
-            { "_id": new ObjectId(vCardId) },
+            { "ownerId": ownerId },
             { $set: updatedVCard },
             { upsert: false }
         );
@@ -555,13 +554,6 @@ export const healthDB = async () => {
     const client = new MongoClient(encodeURI(uri), { useNewUrlParser: true, useUnifiedTopology: true });
     try {
         const status = client?'healthy':'unhealthy'; // Correct Mongoose instance reference
-
-        const mongoStatus: Record<number, string> = {
-            0: 'disconnected',
-            1: 'connected',
-            2: 'connecting',
-            3: 'disconnecting',
-        };
 
         dbLogger.info("DB connection established successfully");
         return {
