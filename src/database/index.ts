@@ -1,6 +1,7 @@
 import logger from '../logger/logger';
 import {ObjectId} from "mongodb";
 import {BusinessData, UserData, VCardData} from "../models/types";
+import {next} from "cheerio/lib/api/traversing";
 
 const dbLogger = logger.child({context:'databaseService'})
 const MongoClient = require('mongodb').MongoClient;
@@ -29,8 +30,7 @@ export const createBusinessDB = async (businessDetails: BusinessData) => {
 
         const db = client.db("athenadb");
         const result = await db.collection("businesses").insertOne(businessDetails);
-
-        dbLogger.info("Business created:", result);
+        dbLogger.info("Business successfully inserted");
         return result;
     } catch (error) {
         dbLogger.error({ message: 'Error creating business', error });
@@ -79,30 +79,28 @@ export const updateBusinessDB = async (id: ObjectId, updateDetails: Partial<Busi
  * @param {ObjectId} id - The ID of the business to delete.
  * @returns {Promise<Object>} - The result of the deletion operation.
  */
-export const deleteBusinessDB = async (id: ObjectId) => {
-    const client = new MongoClient(encodeURI(uri), {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
-    });
+export const deleteBusinessDB = async (id: string) => {
+    const client = new MongoClient(encodeURI(uri), {useNewUrlParser: true, useUnifiedTopology: true });
 
-    let deleteResult;
     dbLogger.info("Connecting to Database");
+    const objectId = new ObjectId(id)
 
-    deleteResult = client.connect()
-        .then(() => {
-            dbLogger.info("Database connected");
-            dbLogger.info("Attempting to delete business record");
-            return client.db("athenadb");
-        })
-        .then((db: any) => {
-            return db.collection("businesses").deleteOne({ _id: id });
-        })
-        .finally(() => {
-            client.close();
-            dbLogger.info("Database connection closed");
-        });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        dbLogger.info("Database connected, removing business data");
 
-    return deleteResult;
+        const db = client.db("athenadb");
+        const result = await db.collection("businesses").deleteOne({ _id: objectId });
+        dbLogger.info("Business successfully removed");
+        return result;
+    } catch (error) {
+        dbLogger.error({ message: 'Error removing business', error });
+        throw error;  // Re-throw the error after logging
+    } finally {
+        await client.close();
+        dbLogger.info("Database connection closed");
+    }
 }
 
 /**
@@ -157,82 +155,109 @@ export const updateSocialHandlesDB = async (businessId: string, addedHandle: any
  * @returns {Promise<any>} The updated business document.
  */
 export const updateLogoDB = async (businessId: string, logo: any): Promise<any> => {
-    const client = new MongoClient(encodeURI(uri), {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
-    });
+    const client = new MongoClient(encodeURI(uri), {useNewUrlParser: true, useUnifiedTopology: true});
 
     dbLogger.info("Connecting to Database");
 
-    return await client.connect()
-        .then(() => {
-            dbLogger.info("Database connected");
-            dbLogger.info("Attempting to update user logo");
-            return client.db("athenadb");
-        })
-        .then(async (db: any) => {
-            return await db.collection("businesses")
-                .updateOne(
-                    { "_id": { $ne: `${new ObjectId(businessId)}` } },
-                    {
-                        $set: {
-                            "logo": {
-                                "mime": logo.mime,
-                                "data": logo.data
-                            }
+    try {
+        dbLogger.info("Database connected");
+        dbLogger.info("Attempting to update card logo");
+        await client.connect();
+        const db = await client.db('athena')
+        const result = await db.collection("businesses")
+            .updateOne(
+                { "_id": { $ne: `${new ObjectId(businessId)}` } },
+                {
+                    $set: {
+                        "logo": {
+                            "mime": logo.mime,
+                            "data": logo.data
                         }
-                    },
-                    { "upsert": false }
-                );
-        })
-        .then((res: any) => {
-            return res;
-        })
-        .catch((err: any) => {
-            dbLogger.error(`Error connecting to database: ${err}`);
-        })
-        .finally(() => {
-            client.close();
-        });
+                    }
+                },
+                { "upsert": false }
+            );
+        if (result) {
+            dbLogger.info('Business updated: ' + result._id);
+            return result;
+        } else {
+            dbLogger.info('Business not found');
+            // throw new Error('Business not found');
+        }
+    } catch( err ) {
+        dbLogger.error(`Error connecting to database: ${err}`);
+        throw err
+    } finally {
+        await client.close()
+        dbLogger.info("Database connection closed");
+    }
+
+    // return await client.connect()
+    //     .then(() => {
+    //         dbLogger.info("Database connected");
+    //         dbLogger.info("Attempting to update user logo");
+    //         return client.db("athenadb");
+    //     })
+    //     .then(async (db: any) => {
+    //         return await db.collection("businesses")
+    //             .updateOne(
+    //                 { "_id": { $ne: `${new ObjectId(businessId)}` } },
+    //                 {
+    //                     $set: {
+    //                         "logo": {
+    //                             "mime": logo.mime,
+    //                             "data": logo.data
+    //                         }
+    //                     }
+    //                 },
+    //                 { "upsert": false }
+    //             );
+    //     })
+    //     .then((res: any) => {
+    //         return res;
+    //     })
+    //     .catch((err: any) => {
+    //         dbLogger.error(`Error connecting to database: ${err}`);
+    //     })
+    //     .finally(() => {
+    //         client.close();
+    //     });
 };
 
 /**
  * Retrieve a business record by id from the database.
  *
- * @returns {Promise<Object>} - The result of the read operation.
  * @param businessId - The ID of the business to retrieve.
  */
-export const getBusinessByIdDB = async (businessId: string): Promise<object> => {
+export const getBusinessByIdDB = async (businessId: string) => {
   const client = new MongoClient(uri,
     {
       useNewUrlParser: true,
       useUnifiedTopology: true
     });
+    try {
+        await client.connect();
+        const db = client.db('athenadb');
+        const businessIdDB = new ObjectId(businessId);
 
-  let retrievedBusiness;
-  dbLogger.info("Connecting to Database")
-  retrievedBusiness =
-    client.connect()
-      .then(() => {
-        dbLogger.info("Database connected")
-        dbLogger.info("Attempting to retrieve document")
-        return client.db("athenadb");
-      })
-      .then((db: any) => {
-        return db.collection("businesses")
-          .findOne({_id: new ObjectId(businessId)})
-      })
-      .then((res: any) => {
-        return res;
-      })
-      .catch((err: any) => {
-        dbLogger.error(`Error connecting to database ${err}`)
-      })
-      .finally(() => {
-        client.close();
-      });
+        dbLogger.info("Database connected");
+        dbLogger.info("Attempting to retrieve document");
 
-  return retrievedBusiness;
+        const result = await db.collection("businesses").findOne({ _id: businessIdDB });
+
+        if (result) {
+            dbLogger.info('Business retrieved: ' + result._id);
+            return result;
+        } else {
+            dbLogger.info('Business not found');
+            throw new Error('Business not found');
+        }
+    } catch (err: any) {
+        dbLogger.error(`Error occurred: ${err.message}`);
+        throw err; // Ensure the error is propagated
+    } finally {
+        await client.close();
+    }
 }
 
 // CREATE VCard (POST)
@@ -323,9 +348,10 @@ export const deleteVCardDB = async (vCardId: string) => {
         dbLogger.info("Connecting to Database");
         await client.connect();
         const db = client.db('athenadb');
+        const objectId = new ObjectId(vCardId)
+        const result = await db.collection('vcards').deleteOne({ "_id": objectId });
 
-        const result = await db.collection('vcards').deleteOne({ "_id": new ObjectId(vCardId) });
-        dbLogger.info('VCard deleted:', result);
+        dbLogger.info('VCard deleted!');
         return result;
     } catch (error) {
         dbLogger.error({ message: 'Error deleting VCard', error });
