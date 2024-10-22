@@ -11,7 +11,8 @@
     "dev": "ts-node  src/index.ts --trace-warnings",
     "start": "node  dist/index.js --trace-warnings",
     "build": "tsc -p .",
-    "test": "jest --runInBand --coverage --watch",
+    "test-watch": "jest --runInBand --coverage --watch",
+    "test": "jest --runInBand --coverage",
     "semantic-release": "semantic-release"
   },
   "repository": "https://github.com/wembleyWilliams/gg-marketing-tool-backend.git",
