@@ -1,5 +1,5 @@
 import user from "./router/user";
-import business from "./router/business";
+import business from "./router/business/routes";
 import passportService from './config/passport'
 import utility from "./router/utilities";
 import requestLogger from "./logger/requestLogger";

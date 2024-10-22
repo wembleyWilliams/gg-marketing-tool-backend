@@ -8,17 +8,14 @@ const vCardLogger = logger.child({context:'vcardService'})
 
 export const createVCard = async (req: Request, res: Response) => {
     let vCardData: VCardData = req.body
-
-    let response = await createVCardDB(vCardData)
-        .then((res)=>{
+        try {
+            let response = await createVCardDB(vCardData)
+            res.status(200).send(`Success!! VCard created: ${response}`);
             return res
-        })
-        .catch((err: any) => {
+        } catch (err: any){
             vCardLogger.error('Error inserting card information', { error: err });
             res.status(500).send({ message: 'Error inserting card information', error: err });
-        })
-
-    res.status(200).send(`Success!! VCard created: ${response}`);
+        }
 }
 
 export const getVCard = async (req: Request, res: Response) => {
@@ -72,6 +69,7 @@ export const deleteVCard = async (req: Request, res: Response) => {
     if(ownerId) {
         let deletedVCard = await deleteVCardDB(ownerId)
             .then((res)=> {
+
                 return res
             })
             .catch((err: any) => {
