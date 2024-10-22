@@ -5,7 +5,29 @@ on:
     branches:
       -  master
 jobs:
+  test:
+    runs-on: ubuntu-20.04
+    steps:
+      # Step 1: Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # Step 2: Set up Node.js
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '16' # Adjust this if you're using a different version
+
+      # Step 3: Install dependencies
+      - name: Install dependencies
+        run: npm install
+
+      # Step 4: Run unit tests
+      - name: Run unit tests
+        run: npm test
+
   deploy:
+    needs: test
     runs-on: ubuntu-20.04
     environment: Production
 
