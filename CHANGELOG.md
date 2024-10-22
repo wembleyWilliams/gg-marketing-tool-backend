@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/wembleyWilliams/gg-marketing-tool-backend/compare/v1.0.1...v1.0.2) (2024-10-22)
+
+
+### Bug Fixes
+
+* Adjusted node version in test ([caa8f79](https://github.com/wembleyWilliams/gg-marketing-tool-backend/commit/caa8f79de663d32bc7c3afeb252a3fce6eae85d0))
+
 ## [1.0.1](https://github.com/wembleyWilliams/gg-marketing-tool-backend/compare/v1.0.0...v1.0.1) (2024-10-22)
 
 
