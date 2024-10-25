@@ -656,3 +656,142 @@ describe('healthDB', () => {
         await expect(db.healthDB()).rejects.toThrow('Connection failed');
     });
 });
+
+describe('Socials Table CRUD Operations', () => {
+    let mockClient: any;
+    const mockSocial = {
+        user_id: 'user123',
+        socialMediaPlatform: 'Instagram',
+        profileName: 'john_doe',
+        profileUrl: 'https://www.instagram.com/john_doe',
+    };
+
+    beforeEach(() => {
+        mockClient = {
+            connect: jest.fn(),
+            db: jest.fn().mockReturnValue({
+                collection: jest.fn().mockReturnValue({
+                    insertOne: jest.fn().mockResolvedValue({ insertedId: 'mockedSocialId' }),
+                    findOne: jest.fn().mockResolvedValue(mockSocial),
+                    find: jest.fn().mockReturnValue({
+                        toArray: jest.fn().mockResolvedValue([mockSocial]),
+                    }),
+                    updateOne: jest.fn().mockResolvedValue({ modifiedCount: 1 }),
+                    deleteOne: jest.fn().mockResolvedValue({ deletedCount: 1 }),
+                }),
+            }),
+            close: jest.fn(),
+        };
+        MongoClient.mockReturnValue(mockClient);
+    });
+
+    // Test for Creating a Social Entry
+    describe('createSocialDB', () => {
+        it('should insert social data into the database', async () => {
+            const result = await db.createSocialDB(mockSocial);
+            expect(mockClient.connect).toHaveBeenCalledTimes(1);
+            expect(mockClient.db().collection().insertOne).toHaveBeenCalledWith(mockSocial);
+            expect(result).toEqual({ insertedId: 'mockedSocialId' });
+            expect(mockClient.close).toHaveBeenCalledTimes(1);
+        });
+
+        it('should log an error if insertion fails', async () => {
+            mockClient.db().collection().insertOne.mockRejectedValue(new Error('Insert failed'));
+            await expect(db.createSocialDB(mockSocial)).rejects.toThrow('Insert failed');
+        });
+    });
+
+    // Test for Reading a Single Social Entry
+    describe('getSocialDB', () => {
+        it('should retrieve a social record by social_id', async () => {
+            const result = await db.getSocialDB('mockedSocialId');
+            expect(mockClient.connect).toHaveBeenCalledTimes(1);
+            expect(mockClient.db().collection().findOne).toHaveBeenCalled();
+            expect(result).toEqual(mockSocial);
+            expect(mockClient.close).toHaveBeenCalledTimes(1);
+        });
+
+        it('should log an error if retrieval fails', async () => {
+            mockClient.db().collection().findOne.mockRejectedValue(new Error('Find failed'));
+            await expect(db.getSocialDB('mockedSocialId')).rejects.toThrow('Find failed');
+        });
+    });
+
+    // Test for Reading Social Entries by User ID
+    describe('getSocialByUserIdDB', () => {
+        it('should retrieve social records by user ID', async () => {
+            const userId = 'mockedUserId';
+            const result = await db.getSocialByUserIdDB(userId);
+            expect(mockClient.connect).toHaveBeenCalledTimes(1);
+            expect(mockClient.db().collection().find).toHaveBeenCalledWith({ userId: userId });
+            expect(mockClient.db().collection().find().toArray).toHaveBeenCalledTimes(1);
+            expect(result).toEqual([mockSocial]); // Expecting an array with mockSocial
+            expect(mockClient.close).toHaveBeenCalledTimes(1);
+        });
+
+        it('should log an error if retrieval fails', async () => {
+            const userId = 'mockedUserId';
+            mockClient.db().collection().find().toArray.mockRejectedValue(new Error('Find failed'));
+            await expect(db.getSocialByUserIdDB(userId)).rejects.toThrow('Find failed');
+        });
+    });
+
+    // Test for Reading All Social Entries for a User
+    describe('getAllSocialsForUserDB', () => {
+        it('should retrieve all social records for a user', async () => {
+            const result = await db.getAllSocialsForUserDB('user123');
+            expect(mockClient.connect).toHaveBeenCalledTimes(1);
+            expect(mockClient.db().collection().find).toHaveBeenCalledWith({ user_id: 'user123' });
+            expect(result).toEqual([mockSocial]);
+            expect(mockClient.close).toHaveBeenCalledTimes(1);
+        });
+
+        it('should log an error if retrieval fails', async () => {
+            mockClient.db().collection().find.mockReturnValue({
+                toArray: jest.fn().mockRejectedValue(new Error('Find failed')),
+            });
+            await expect(db.getAllSocialsForUserDB('user123')).rejects.toThrow('Find failed');
+        });
+    });
+
+    // Test for Updating a Social Entry
+    describe('updateSocialDB', () => {
+        const updatedSocial = {
+            socialMediaPlatform: 'LinkedIn',
+            profileName: 'john_linkedin',
+            profileUrl: 'https://www.linkedin.com/in/john_linkedin',
+        };
+
+        it('should update a social record', async () => {
+            const result = await db.updateSocialDB('mockedSocialId', updatedSocial);
+            expect(mockClient.connect).toHaveBeenCalledTimes(1);
+            expect(mockClient.db().collection().updateOne).toHaveBeenCalledWith(
+                { _id: 'mockedSocialId' },
+                { $set: updatedSocial }
+            );
+            expect(result).toEqual({ modifiedCount: 1 });
+            expect(mockClient.close).toHaveBeenCalledTimes(1);
+        });
+
+        it('should log an error if update fails', async () => {
+            mockClient.db().collection().updateOne.mockRejectedValue(new Error('Update failed'));
+            await expect(db.updateSocialDB('mockedSocialId', updatedSocial)).rejects.toThrow('Update failed');
+        });
+    });
+
+    // Test for Deleting a Social Entry
+    describe('deleteSocialDB', () => {
+        it('should delete a social record by social_id', async () => {
+            const result = await db.deleteSocialDB('mockedSocialId');
+            expect(mockClient.connect).toHaveBeenCalledTimes(1);
+            expect(mockClient.db().collection().deleteOne).toHaveBeenCalledWith({ "_id": 'mockedSocialId' });
+            expect(result).toEqual({ deletedCount: 1 });
+            expect(mockClient.close).toHaveBeenCalledTimes(1);
+        });
+
+        it('should log an error if deletion fails', async () => {
+            mockClient.db().collection().deleteOne.mockRejectedValue(new Error('Delete failed'));
+            await expect(db.deleteSocialDB('mockedSocialId')).rejects.toThrow('Delete failed');
+        });
+    });
+});
