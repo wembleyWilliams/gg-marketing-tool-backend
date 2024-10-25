@@ -192,36 +192,6 @@ export const updateLogoDB = async (businessId: string, logo: any): Promise<any> 
         dbLogger.info("Database connection closed");
     }
 
-    // return await client.connect()
-    //     .then(() => {
-    //         dbLogger.info("Database connected");
-    //         dbLogger.info("Attempting to update user logo");
-    //         return client.db("athenadb");
-    //     })
-    //     .then(async (db: any) => {
-    //         return await db.collection("businesses")
-    //             .updateOne(
-    //                 { "_id": { $ne: `${new ObjectId(businessId)}` } },
-    //                 {
-    //                     $set: {
-    //                         "logo": {
-    //                             "mime": logo.mime,
-    //                             "data": logo.data
-    //                         }
-    //                     }
-    //                 },
-    //                 { "upsert": false }
-    //             );
-    //     })
-    //     .then((res: any) => {
-    //         return res;
-    //     })
-    //     .catch((err: any) => {
-    //         dbLogger.error(`Error connecting to database: ${err}`);
-    //     })
-    //     .finally(() => {
-    //         client.close();
-    //     });
 };
 
 /**
@@ -594,5 +564,159 @@ export const healthDB = async () => {
     } finally {
         await client.close();
         dbLogger.info("Database connection closed");
+    }
+};
+
+/**
+ * Inserts a new social media record into the socials collection.
+ *
+ * @param {any} socialData - The social media data to be inserted.
+ * @returns {Promise<any>} The result of the insertion operation.
+ */
+export const createSocialDB = async (socialData: any): Promise<any> => {
+    const client = new MongoClient(encodeURI(uri), {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    });
+
+    try {
+        await client.connect();
+        const db = client.db("athenadb");
+        const result = await db.collection('socials').insertOne(socialData);
+        return { insertedId: result.insertedId };
+    } catch (error) {
+        console.error('Error inserting social data:', error);
+        throw new Error('Insert failed');
+    } finally {
+        client.close();
+    }
+};
+
+/**
+ * Retrieves a social media record by the user's ID.
+ *
+ * @param {string} userId - The ID of the user to retrieve the social media records for.
+ * @returns {Promise<any[]>} A list of social media records for the user.
+ */
+export const getSocialByUserIdDB = async (userId: string): Promise<any[]> => {
+    const client = new MongoClient(encodeURI(uri), {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    });
+
+    try {
+        await client.connect();
+        const db = client.db("athenadb");
+        const results = await db.collection('socials').find({ userId: userId }).toArray();
+        return results;
+    } catch (error) {
+        console.error('Error fetching social data by user ID:', error);
+        throw new Error('Find failed');
+    } finally {
+        client.close();
+    }
+};
+
+
+/**
+ * Retrieves a social media record by its ID.
+ *
+ * @param {string} socialId - The ID of the social media record to retrieve.
+ * @returns {Promise<any>} The social media record.
+ */
+export const getSocialDB = async (socialId: string): Promise<any> => {
+    const client = new MongoClient(encodeURI(uri), {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    });
+
+    try {
+        await client.connect();
+        const db = client.db("athenadb");
+        const result = await db.collection('socials').findOne({ _id: new ObjectId(socialId) });
+        return result;
+    } catch (error) {
+        console.error('Error fetching social data:', error);
+        throw new Error('Find failed');
+    } finally {
+        client.close();
+    }
+};
+
+/**
+ * Retrieves all social media records associated with a user.
+ *
+ * @param {string} userId - The ID of the user to retrieve social media records for.
+ * @returns {Promise<any[]>} A list of social media records for the user.
+ */
+export const getAllSocialsForUserDB = async (userId: string): Promise<any[]> => {
+    const client = new MongoClient(encodeURI(uri), {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    });
+
+    try {
+        await client.connect();
+        const db = client.db("athenadb");
+        const results = await db.collection('socials').find({ user_id: userId }).toArray();
+        return results;
+    } catch (error) {
+        console.error('Error fetching user social data:', error);
+        throw new Error('Find failed');
+    } finally {
+        client.close();
+    }
+};
+
+/**
+ * Updates a social media record by its ID.
+ *
+ * @param {string} socialId - The ID of the social media record to update.
+ * @param {any} updatedData - The updated data for the social media record.
+ * @returns {Promise<any>} The result of the update operation.
+ */
+export const updateSocialDB = async (socialId: string, updatedData: any): Promise<any> => {
+    const client = new MongoClient(encodeURI(uri), {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    });
+    try {
+        await client.connect();
+        const db = client.db("athenadb");
+        const result = await db.collection('socials').updateOne(
+            { "_id": socialId },
+            { $set: updatedData }
+        );
+        return { modifiedCount: result.modifiedCount };
+    } catch (error) {
+        console.error('Error updating social data:', error);
+        throw new Error('Update failed');
+    } finally {
+        client.close();
+    }
+};
+
+/**
+ * Deletes a social media record by its ID.
+ *
+ * @param {string} socialId - The ID of the social media record to delete.
+ * @returns {Promise<any>} The result of the delete operation.
+ */
+export const deleteSocialDB = async (socialId: string): Promise<any> => {
+    const client = new MongoClient(encodeURI(uri), {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    });
+
+    try {
+        await client.connect();
+        const db = client.db("athenadb");
+        const result = await db.collection('socials').deleteOne({ "_id": socialId });
+        return { deletedCount: result.deletedCount };
+    } catch (error) {
+        console.error('Error deleting social data:', error);
+        throw new Error('Delete failed');
+    } finally {
+        client.close();
     }
 };
