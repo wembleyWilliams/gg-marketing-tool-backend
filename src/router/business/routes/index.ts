@@ -1,11 +1,20 @@
-import {createBusiness, deleteBusiness, getBusiness, modifyBusiness, updateBusinessLogo} from "../index";
+import {
+    createBusiness,
+    deleteBusiness,
+    getBusiness,
+    getBusinessByUserId,
+    updateBusiness,
+    updateBusinessLogo
+} from "../index";
 
 const express = require('express')
 const business = express.Router()
 
 business.get('/:businessId', getBusiness)
 
-business.post('/update/:businessId', modifyBusiness)
+business.get('/user/:userId', getBusinessByUserId)
+
+business.post('/update/:businessId', updateBusiness)
 
 business.post('/create', createBusiness)
 

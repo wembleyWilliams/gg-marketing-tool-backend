@@ -230,6 +230,42 @@ export const getBusinessByIdDB = async (businessId: string) => {
     }
 }
 
+/**
+ * Retrieve a business record by user ID from the database.
+ *
+ * @param userId - The ID of the user whose business to retrieve.
+ */
+export const getBusinessByUserIdDB = async (userId: string) => {
+    const client = new MongoClient(uri, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+    });
+
+    try {
+        await client.connect();
+        const db = client.db('athenadb');
+        // const userObjectId = new ObjectId(userId);
+
+        dbLogger.info("Database connected");
+        dbLogger.info("Attempting to retrieve document by user ID");
+
+        const result = await db.collection("businesses").findOne({ userId: userId });
+
+        if (result) {
+            dbLogger.info('Business retrieved: ' + result._id);
+            return result;
+        } else {
+            dbLogger.info('Business not found');
+            throw new Error('Business not found');
+        }
+    } catch (err: any) {
+        dbLogger.error(`Error occurred: ${err.message}`);
+        throw err; // Ensure the error is propagated
+    } finally {
+        await client.close();
+    }
+};
+
 // CREATE VCard (POST)
 /**
  * Inserts a new VCard into the MongoDB database.
@@ -398,7 +434,7 @@ export const getUserByIdDB = async (userId: string) => {
         await client.connect();
         const db = client.db('athenadb');
 
-        const user = await db.collection('users').findOne({ "_id": new ObjectId(userId) });
+        const user = await db.collection('users').findOne({ _id : new ObjectId(userId) });
         dbLogger.info('User found:', user);
         return user;
 

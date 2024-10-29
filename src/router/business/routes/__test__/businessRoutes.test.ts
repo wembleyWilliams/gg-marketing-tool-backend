@@ -1,16 +1,29 @@
-import {createBusiness, deleteBusiness, getBusiness, modifyBusiness, updateBusinessLogo} from "../../index";
+import {
+    createBusiness,
+    deleteBusiness,
+    getBusiness,
+    getBusinessByUserId,
+    updateBusiness,
+    updateBusinessLogo
+} from "../../index";
 
 import request from 'supertest';
 import express from 'express';
 import business from "../index";
+import {getBusinessByUserIdDB} from "../../../../database";
 
 jest.mock('../../index', () => ({
     createBusiness: jest.fn(),
     deleteBusiness: jest.fn(),
     getBusiness: jest.fn(),
-    modifyBusiness: jest.fn(),
+    getBusinessByUserId: jest.fn(),
+    updateBusiness: jest.fn(),
     updateBusinessLogo: jest.fn(),
 }));
+
+jest.mock('../../../../database', () => ({
+    getBusinessByUserIdDB: jest.fn()
+}))
 
 // Set up Express app
 const app = express();
@@ -47,6 +60,55 @@ describe('Business Routes', () => {
             expect(response.body).toEqual({ message: 'Business not found' });
         });
     });
+
+    // GET /business/user/:userId
+    describe('GET /business/user/:userId', () => {
+        it('should retrieve a business by user ID', async () => {
+            const mockBusiness = { id: 1, name: 'User Business' };
+            // (getBusinessByUserId as jest.Mock).mockResolvedValue(mockBusiness);
+            // Mock the database call
+            (getBusinessByUserId as jest.Mock).mockImplementation((req, res) => {
+                res.status(200).json(mockBusiness);
+            });
+            const response = await request(app).get('/business/user/1');
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual(mockBusiness);
+        });
+
+        it('should return 404 if no business is found for user ID', async () => {
+
+            (getBusinessByUserId as jest.Mock).mockImplementation((req, res) => {
+                res.status(404).json({ message: 'Business not found' });
+            });
+
+            // Send a request with a user ID that has no business associated
+            const response = await request(app).get('/business/user/999');
+
+            // Assert that the status code and response match the expected 404 for "not found"
+            expect(response.status).toBe(404);
+            expect(response.body).toEqual({ message: 'Business not found' });
+        });
+
+
+        // it('should return 500 if there is a database error', async () => {
+        //     const errorMessage = 'Database error';
+        //     // (getBusinessByUserIdDB as jest.Mock).mockReturnValue(new Error(errorMessage));
+        //     (getBusinessByUserId as jest.Mock).mockRejectedValue(new Error(errorMessage));
+        //     // Simulate an error
+        //     // (getBusinessByUserId as jest.Mock).mockImplementation(() => new Error(errorMessage));
+        //         // res.status(404).json({ message: 'Business not found' });
+        //
+        //     const response = await request(app)
+        //         .get('/business/user/1');
+        //
+        //     // console.log(response.status)
+        //     expect(response.status).toBe(500);
+        //     expect(response.body).toEqual({ message: 'Error retrieving business', error: expect.any(Error) });
+        // });
+
+    });
+
 
     // POST /business/create
     describe('POST /business/create', () => {
@@ -87,7 +149,7 @@ describe('Business Routes', () => {
             const updateData = { name: 'Updated Business' };
             const mockResponse = { id: 1, name: 'Updated Business' };
 
-            (modifyBusiness as jest.Mock).mockImplementation((req, res) => {
+            (updateBusiness as jest.Mock).mockImplementation((req, res) => {
                 res.status(200).json(mockResponse);
             });
 
@@ -97,11 +159,11 @@ describe('Business Routes', () => {
 
             expect(response.status).toBe(200);
             expect(response.body).toEqual(mockResponse);
-            expect(modifyBusiness).toHaveBeenCalled();
+            expect(updateBusiness).toHaveBeenCalled();
         });
 
         it('should return 500 if there is an error', async () => {
-            (modifyBusiness as jest.Mock).mockImplementation((req, res) => {
+            (updateBusiness as jest.Mock).mockImplementation((req, res) => {
                 res.status(500).json({ message: 'Error updating business' });
             });
 

@@ -1,14 +1,14 @@
 import {
     createBusiness,
     deleteBusiness,
-    getBusiness,
-    modifyBusiness,
+    getBusiness, getBusinessByUserId,
+    updateBusiness,
     updateBusinessLogo,
 } from '../index'; // Adjust the path to the correct location
 import {
     createBusinessDB,
     deleteBusinessDB,
-    getBusinessByIdDB,
+    getBusinessByIdDB, getBusinessByUserIdDB,
     updateLogoDB,
     updateSocialHandlesDB,
 } from '../../../database'; // Mocked database functions
@@ -19,6 +19,7 @@ jest.mock('../../../database', () => ({
     createBusinessDB: jest.fn(),
     deleteBusinessDB: jest.fn(),
     getBusinessByIdDB: jest.fn(),
+    getBusinessByUserIdDB: jest.fn(),
     updateLogoDB: jest.fn(),
     updateSocialHandlesDB: jest.fn(),
 }));
@@ -152,8 +153,69 @@ describe('Business Handlers', () => {
         });
     });
 
+    // Test for getBusinessByUserId
+
+
+        // Test for getBusinessByUserId
+        describe('getBusinessByUserId', () => {
+
+
+// Mock response object
+            const mockResponse = () => {
+                const res: any = {};
+                res.status = jest.fn().mockReturnValue(res);
+                res.send = jest.fn().mockReturnValue(res);
+                return res;
+            };
+
+            it('should return a business by user ID with status 200', async () => {
+                const req = { params: { userId: '1' } };
+                const res = mockResponse();
+                const mockBusiness = { id: '1', name: 'User Business' };
+
+                (getBusinessByUserIdDB as jest.Mock).mockResolvedValue(mockBusiness);
+
+                await getBusinessByUserId(req, res);
+
+                expect(getBusinessByUserIdDB).toHaveBeenCalledWith('1');
+                expect(res.status).toHaveBeenCalledWith(200);
+                expect(res.send).toHaveBeenCalledWith(mockBusiness);
+            });
+
+            it('should return 404 if no business found for user ID', async () => {
+                const req = { params: { userId: '1' } };
+                const res = mockResponse();
+
+                (getBusinessByUserIdDB as jest.Mock).mockResolvedValue(null);
+
+                await getBusinessByUserId(req, res);
+
+                expect(getBusinessByUserIdDB).toHaveBeenCalledWith('1');
+                expect(res.status).toHaveBeenCalledWith(404);
+                expect(res.send).toHaveBeenCalledWith({ message: 'Business not found' });
+            });
+
+            it('should return 500 if there is an error retrieving the business', async () => {
+                const req = { params: { userId: '1' } };
+                const res = mockResponse();
+                const mockError = new Error('Error retrieving business');
+
+                (getBusinessByUserIdDB as jest.Mock).mockRejectedValue(mockError);
+
+                await getBusinessByUserId(req, res);
+
+                expect(getBusinessByUserIdDB).toHaveBeenCalledWith('1');
+                expect(res.status).toHaveBeenCalledWith(500);
+                expect(res.send).toHaveBeenCalledWith({
+                    message: 'Error retrieving business',
+                    error: 'Error retrieving business', // match err.message as a string
+                });
+            });
+
+        });
+
     // Test for modifyBusiness
-    describe('modifyBusiness', () => {
+    describe('updateBusiness', () => {
         it('should update the social handles of a business and return 200', async () => {
             const req = { params: { businessId: '1' }, body: { handle: '@newhandle' } };
             const res = mockResponse();
@@ -161,7 +223,7 @@ describe('Business Handlers', () => {
 
             (updateSocialHandlesDB as jest.Mock).mockResolvedValue(updatedBusiness);
 
-            await modifyBusiness(req, res);
+            await updateBusiness(req, res);
 
             expect(updateSocialHandlesDB).toHaveBeenCalledWith('1', '@newhandle');
             expect(res.status).toHaveBeenCalledWith(200);
@@ -175,7 +237,7 @@ describe('Business Handlers', () => {
 
             (updateSocialHandlesDB as jest.Mock).mockRejectedValue(mockError);
 
-            await modifyBusiness(req, res);
+            await updateBusiness(req, res);
 
             expect(updateSocialHandlesDB).toHaveBeenCalledWith('1', '@newhandle');
             expect(res.status).toHaveBeenCalledWith(500);
