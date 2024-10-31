@@ -1,7 +1,6 @@
 import logger from '../logger/logger';
 import {ObjectId} from "mongodb";
 import {BusinessData, UserData, VCardData} from "../models/types";
-import {next} from "cheerio/lib/api/traversing";
 
 const dbLogger = logger.child({context:'databaseService'})
 const MongoClient = require('mongodb').MongoClient;
@@ -9,7 +8,6 @@ require('dotenv').config()
 //TODO: change to dotenv
 // const uri = process.env.MONGODB_URI? process.env.MONGODB_URI:''
 const uri = 'mongodb+srv://admin:LF6b4S53KkKRUJiv@zeus.aqfx8wo.mongodb.net/?retryWrites=true&w=majority'
-
 
 /**
  * Creates a new business in the database.
@@ -391,7 +389,6 @@ export const listVCardsDB = async () => {
     }
 };
 
-
 // CREATE User (POST)
 /**
  * Creates a new user in the MongoDB database.
@@ -562,7 +559,6 @@ export const listUsersDB = async () => {
     }
 };
 
-
 /**
  * Performs a simple connection health test with the MongoDB database.
  *
@@ -652,7 +648,6 @@ export const getSocialByUserIdDB = async (userId: string): Promise<any[]> => {
         client.close();
     }
 };
-
 
 /**
  * Retrieves a social media record by its ID.
@@ -754,5 +749,89 @@ export const deleteSocialDB = async (socialId: string): Promise<any> => {
         throw new Error('Delete failed');
     } finally {
         client.close();
+    }
+};
+
+/**
+ * Retrieves consolidated business data by aggregating across multiple collections.
+ *
+ * @param userId The ID of the user whose data needs to be retrieved.
+ * @returns A promise resolving to the consolidated data from businesses, users, roles, socials, and vcards collections.
+ */
+export const aggregateDataDB = async (userId: string) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db('athenadb');
+
+        dbLogger.info(`Aggregating data for user ID: ${userId}`);
+
+        const result = await db.collection('businesses').aggregate([
+            {
+                $match: { userId: userId } // Ensure `userId` matches type and value
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "userId",
+                    foreignField: "_id",
+                    as: "userData"
+                }
+            },
+            {
+                $lookup: {
+                    from: "roles",
+                    localField: "userId",
+                    foreignField: "userId",
+                    as: "roleData"
+                }
+            },
+            {
+                $lookup: {
+                    from: "socials",
+                    localField: "userId",
+                    foreignField: "userId",
+                    as: "socialsData"
+                }
+            },
+            {
+                $lookup: {
+                    from: "vcards",
+                    localField: "userId",
+                    foreignField: "ownerId",
+                    as: "vcardData"
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    name: 1,
+                    industry: 1,
+                    address: 1,
+                    website: 1,
+                    contactEmail: 1,
+                    phone: 1,
+                    socials: 1,
+                    description: 1,
+                    logo: 1,
+                    userData: { $arrayElemAt: ["$userData", 0] },
+                    roleData: { $arrayElemAt: ["$roleData", 0] },
+                    socialsData: 1,
+                    vcardData: { $arrayElemAt: ["$vcardData", 0] }
+                }
+            }
+        ]).toArray();
+
+        dbLogger.info('Data aggregation successful:', result);
+        return result;
+
+    } catch (error) {
+        dbLogger.error({ message: 'Error aggregating data', error });
+        throw error;
+    } finally {
+        await client.close();
+        dbLogger.info("Database connection closed");
     }
 };

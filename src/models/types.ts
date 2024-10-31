@@ -101,7 +101,7 @@ export interface BusinessData {
     socials: Social[];
     description: string;
     logo?: Media;
-    userId: UserBusinessRole;
+    userId: string;
     createdAt: string;
     updatedAt: string;
 }
