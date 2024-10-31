@@ -1,7 +1,7 @@
 import {
     createBusinessDB,
     deleteBusinessDB,
-    getBusinessByIdDB,
+    getBusinessByIdDB, getBusinessByUserIdDB,
     updateLogoDB,
     updateSocialHandlesDB
 } from "../../database";
@@ -71,12 +71,38 @@ export const getBusiness = async (req: any, res: any) => {
     }
 };
 
+
+/**
+ * Route handler for retrieving a business by user ID.
+ * @param {Request} req - The request object containing the user ID.
+ * @param {Response} res - The response object.
+ */
+export const getBusinessByUserId = async (req: any, res: any) => {
+    businessLogger.info("Retrieving business data by user ID");
+    const userId = req.params.userId;
+    try {
+        let retrievedBusiness: any = await getBusinessByUserIdDB(userId);
+
+        if (retrievedBusiness) {
+            businessLogger.info(`Business document retrieved for user ID ${userId}`);
+            res.status(200).send(retrievedBusiness);
+        } else {
+            businessLogger.info('No business document found for given user ID');
+            res.status(404).send({ message: 'Business not found' });
+        }
+    } catch (err: any) {
+        businessLogger.error('Error retrieving business by user ID', { error: err });
+        // Ensure to send error message properly
+        res.status(500).send({ message: 'Error retrieving business', error: err.message }); // Return error message as string
+    }
+};
+
 /**
  * Route handler for modifying a business's social handles by ID.
  * @param {Request} req - The request object containing the business ID and new handles.
  * @param {Response} res - The response object.
  */
-export const modifyBusiness = async (req: any, res: any) => {
+export const updateBusiness = async (req: any, res: any) => {
     const businessId = req.params.businessId;
     const businessHandle = req.body.handle;
 
@@ -121,4 +147,5 @@ export const updateBusinessLogo = async (req: any, res: any) => {
 
 };
 
-export default {createBusiness, getBusiness, modifyBusiness, updateBusinessLogo, deleteBusiness}
+
+export default {createBusiness, getBusiness, getBusinessByUserId, updateBusiness, updateBusinessLogo, deleteBusiness}
