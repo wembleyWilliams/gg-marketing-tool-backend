@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/wembleyWilliams/gg-marketing-tool-backend/compare/v1.1.0...v1.2.0) (2024-11-01)
+
+
+### Features
+
+* Added aggregateData to return to frontend application as a unified JSON object ([bf6805c](https://github.com/wembleyWilliams/gg-marketing-tool-backend/commit/bf6805cd6050719db630a57fd0e802ccab3e914f))
+
 # [1.1.0](https://github.com/wembleyWilliams/gg-marketing-tool-backend/compare/v1.0.2...v1.1.0) (2024-10-31)
 
 
