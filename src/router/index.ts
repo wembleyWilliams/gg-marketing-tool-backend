@@ -3,8 +3,7 @@ log.setDefaultLevel("INFO")
 const express = require('express')
 const router = express.Router()
 
-// const user = require('./user')
-// const business = require('./business')
+// const user = require('./user')// const business = require('./business')
 //
 // router.use(function timeLog(req: any, res: any, next: any) {
 //     const currentdate = new Date();

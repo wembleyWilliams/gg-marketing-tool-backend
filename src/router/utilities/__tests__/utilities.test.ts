@@ -1,7 +1,7 @@
 import request from 'supertest';
 import express from 'express';
-import { createVCard, getVCard, updateVCard, deleteVCard } from '../routes';
-import { createVCardDB, deleteVCardDB, updateVCardDB } from '../../../database';
+import {createVCard, getVCard, updateVCard, deleteVCard, aggregateData} from '../routes';
+import {aggregateDataDB, createVCardDB, deleteVCardDB, updateVCardDB} from '../../../database';
 import generateContactCard from '../../../utils/generateContactCard';
 import logger from '../../../logger/logger';
 
@@ -174,5 +174,59 @@ describe('vCard Service', () => {
 
         expect(response.status).toBe(500);
         expect(response.body.message).toBe('Unable to find Id');
+    });
+});
+
+describe('aggregateData', () => {
+    let req: any;
+    let res: any;
+    let mockSend: jest.Mock;
+    let mockStatus: jest.Mock;
+
+    beforeEach(() => {
+        mockSend = jest.fn();
+        mockStatus = jest.fn(() => res as Response);
+
+        req = {
+            params: { userId: 'testUserId' },
+        };
+        res = {
+            status: mockStatus,
+            send: mockSend,
+        };
+
+        jest.clearAllMocks();
+    });
+
+    it('should return aggregated data with status 200 on success', async () => {
+        const mockData = { data: 'some aggregated data' };
+        (aggregateDataDB as jest.Mock).mockResolvedValue(mockData);
+
+        await aggregateData(req, res);
+
+        expect(aggregateDataDB).toHaveBeenCalledWith('testUserId');
+        expect(mockStatus).toHaveBeenCalledWith(200);
+        expect(mockSend).toHaveBeenCalledWith(mockData);
+    });
+
+    it('should log an error and return 500 if aggregation fails', async () => {
+        const mockError = new Error('Database error');
+        (aggregateDataDB as jest.Mock).mockRejectedValue(mockError);
+
+        await aggregateData(req, res);
+
+        expect(aggregateDataDB).toHaveBeenCalledWith('testUserId');
+        expect(mockStatus).toHaveBeenCalledWith(500);
+        expect(mockSend).toHaveBeenCalledWith({ message: 'Error aggregating data', error: mockError });
+    });
+
+    it('should log an error and return 400 if userId is not provided', async () => {
+        req.params = {};  // No userId
+
+        await aggregateData(req, res);
+
+        expect(aggregateDataDB).not.toHaveBeenCalled();
+        expect(mockStatus).toHaveBeenCalledWith(400);
+        expect(mockSend).toHaveBeenCalledWith({ message: 'Unable to find user ID' });
     });
 });

@@ -1,7 +1,6 @@
 import logger from '../logger/logger';
 import {ObjectId} from "mongodb";
 import {BusinessData, UserData, VCardData} from "../models/types";
-import {next} from "cheerio/lib/api/traversing";
 
 const dbLogger = logger.child({context:'databaseService'})
 const MongoClient = require('mongodb').MongoClient;
@@ -9,7 +8,6 @@ require('dotenv').config()
 //TODO: change to dotenv
 // const uri = process.env.MONGODB_URI? process.env.MONGODB_URI:''
 const uri = 'mongodb+srv://admin:LF6b4S53KkKRUJiv@zeus.aqfx8wo.mongodb.net/?retryWrites=true&w=majority'
-
 
 /**
  * Creates a new business in the database.
@@ -192,36 +190,6 @@ export const updateLogoDB = async (businessId: string, logo: any): Promise<any> 
         dbLogger.info("Database connection closed");
     }
 
-    // return await client.connect()
-    //     .then(() => {
-    //         dbLogger.info("Database connected");
-    //         dbLogger.info("Attempting to update user logo");
-    //         return client.db("athenadb");
-    //     })
-    //     .then(async (db: any) => {
-    //         return await db.collection("businesses")
-    //             .updateOne(
-    //                 { "_id": { $ne: `${new ObjectId(businessId)}` } },
-    //                 {
-    //                     $set: {
-    //                         "logo": {
-    //                             "mime": logo.mime,
-    //                             "data": logo.data
-    //                         }
-    //                     }
-    //                 },
-    //                 { "upsert": false }
-    //             );
-    //     })
-    //     .then((res: any) => {
-    //         return res;
-    //     })
-    //     .catch((err: any) => {
-    //         dbLogger.error(`Error connecting to database: ${err}`);
-    //     })
-    //     .finally(() => {
-    //         client.close();
-    //     });
 };
 
 /**
@@ -259,6 +227,42 @@ export const getBusinessByIdDB = async (businessId: string) => {
         await client.close();
     }
 }
+
+/**
+ * Retrieve a business record by user ID from the database.
+ *
+ * @param userId - The ID of the user whose business to retrieve.
+ */
+export const getBusinessByUserIdDB = async (userId: string) => {
+    const client = new MongoClient(uri, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+    });
+
+    try {
+        await client.connect();
+        const db = client.db('athenadb');
+        // const userObjectId = new ObjectId(userId);
+
+        dbLogger.info("Database connected");
+        dbLogger.info("Attempting to retrieve document by user ID");
+
+        const result = await db.collection("businesses").findOne({ userId: userId });
+
+        if (result) {
+            dbLogger.info('Business retrieved: ' + result._id);
+            return result;
+        } else {
+            dbLogger.info('Business not found');
+            throw new Error('Business not found');
+        }
+    } catch (err: any) {
+        dbLogger.error(`Error occurred: ${err.message}`);
+        throw err; // Ensure the error is propagated
+    } finally {
+        await client.close();
+    }
+};
 
 // CREATE VCard (POST)
 /**
@@ -385,7 +389,6 @@ export const listVCardsDB = async () => {
     }
 };
 
-
 // CREATE User (POST)
 /**
  * Creates a new user in the MongoDB database.
@@ -428,7 +431,7 @@ export const getUserByIdDB = async (userId: string) => {
         await client.connect();
         const db = client.db('athenadb');
 
-        const user = await db.collection('users').findOne({ "_id": new ObjectId(userId) });
+        const user = await db.collection('users').findOne({ _id : new ObjectId(userId) });
         dbLogger.info('User found:', user);
         return user;
 
@@ -556,7 +559,6 @@ export const listUsersDB = async () => {
     }
 };
 
-
 /**
  * Performs a simple connection health test with the MongoDB database.
  *
@@ -590,6 +592,243 @@ export const healthDB = async () => {
         };
     } catch (error) {
         dbLogger.error({ message: 'Failed to connect to MongoDB Atlas ', error });
+        throw error;
+    } finally {
+        await client.close();
+        dbLogger.info("Database connection closed");
+    }
+};
+
+/**
+ * Inserts a new social media record into the socials collection.
+ *
+ * @param {any} socialData - The social media data to be inserted.
+ * @returns {Promise<any>} The result of the insertion operation.
+ */
+export const createSocialDB = async (socialData: any): Promise<any> => {
+    const client = new MongoClient(encodeURI(uri), {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    });
+
+    try {
+        await client.connect();
+        const db = client.db("athenadb");
+        const result = await db.collection('socials').insertOne(socialData);
+        return { insertedId: result.insertedId };
+    } catch (error) {
+        console.error('Error inserting social data:', error);
+        throw new Error('Insert failed');
+    } finally {
+        client.close();
+    }
+};
+
+/**
+ * Retrieves a social media record by the user's ID.
+ *
+ * @param {string} userId - The ID of the user to retrieve the social media records for.
+ * @returns {Promise<any[]>} A list of social media records for the user.
+ */
+export const getSocialByUserIdDB = async (userId: string): Promise<any[]> => {
+    const client = new MongoClient(encodeURI(uri), {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    });
+
+    try {
+        await client.connect();
+        const db = client.db("athenadb");
+        const results = await db.collection('socials').find({ userId: userId }).toArray();
+        return results;
+    } catch (error) {
+        console.error('Error fetching social data by user ID:', error);
+        throw new Error('Find failed');
+    } finally {
+        client.close();
+    }
+};
+
+/**
+ * Retrieves a social media record by its ID.
+ *
+ * @param {string} socialId - The ID of the social media record to retrieve.
+ * @returns {Promise<any>} The social media record.
+ */
+export const getSocialDB = async (socialId: string): Promise<any> => {
+    const client = new MongoClient(encodeURI(uri), {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    });
+
+    try {
+        await client.connect();
+        const db = client.db("athenadb");
+        const result = await db.collection('socials').findOne({ _id: new ObjectId(socialId) });
+        return result;
+    } catch (error) {
+        console.error('Error fetching social data:', error);
+        throw new Error('Find failed');
+    } finally {
+        client.close();
+    }
+};
+
+/**
+ * Retrieves all social media records associated with a user.
+ *
+ * @param {string} userId - The ID of the user to retrieve social media records for.
+ * @returns {Promise<any[]>} A list of social media records for the user.
+ */
+export const getAllSocialsForUserDB = async (userId: string): Promise<any[]> => {
+    const client = new MongoClient(encodeURI(uri), {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    });
+
+    try {
+        await client.connect();
+        const db = client.db("athenadb");
+        const results = await db.collection('socials').find({ user_id: userId }).toArray();
+        return results;
+    } catch (error) {
+        console.error('Error fetching user social data:', error);
+        throw new Error('Find failed');
+    } finally {
+        client.close();
+    }
+};
+
+/**
+ * Updates a social media record by its ID.
+ *
+ * @param {string} socialId - The ID of the social media record to update.
+ * @param {any} updatedData - The updated data for the social media record.
+ * @returns {Promise<any>} The result of the update operation.
+ */
+export const updateSocialDB = async (socialId: string, updatedData: any): Promise<any> => {
+    const client = new MongoClient(encodeURI(uri), {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    });
+    try {
+        await client.connect();
+        const db = client.db("athenadb");
+        const result = await db.collection('socials').updateOne(
+            { "_id": socialId },
+            { $set: updatedData }
+        );
+        return { modifiedCount: result.modifiedCount };
+    } catch (error) {
+        console.error('Error updating social data:', error);
+        throw new Error('Update failed');
+    } finally {
+        client.close();
+    }
+};
+
+/**
+ * Deletes a social media record by its ID.
+ *
+ * @param {string} socialId - The ID of the social media record to delete.
+ * @returns {Promise<any>} The result of the delete operation.
+ */
+export const deleteSocialDB = async (socialId: string): Promise<any> => {
+    const client = new MongoClient(encodeURI(uri), {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    });
+
+    try {
+        await client.connect();
+        const db = client.db("athenadb");
+        const result = await db.collection('socials').deleteOne({ "_id": socialId });
+        return { deletedCount: result.deletedCount };
+    } catch (error) {
+        console.error('Error deleting social data:', error);
+        throw new Error('Delete failed');
+    } finally {
+        client.close();
+    }
+};
+
+/**
+ * Retrieves consolidated business data by aggregating across multiple collections.
+ *
+ * @param userId The ID of the user whose data needs to be retrieved.
+ * @returns A promise resolving to the consolidated data from businesses, users, roles, socials, and vcards collections.
+ */
+export const aggregateDataDB = async (userId: string) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db('athenadb');
+
+        dbLogger.info(`Aggregating data for user ID: ${userId}`);
+
+        const result = await db.collection('businesses').aggregate([
+            {
+                $match: { userId: userId } // Ensure `userId` matches type and value
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "userId",
+                    foreignField: "_id",
+                    as: "userData"
+                }
+            },
+            {
+                $lookup: {
+                    from: "roles",
+                    localField: "userId",
+                    foreignField: "userId",
+                    as: "roleData"
+                }
+            },
+            {
+                $lookup: {
+                    from: "socials",
+                    localField: "userId",
+                    foreignField: "userId",
+                    as: "socialsData"
+                }
+            },
+            {
+                $lookup: {
+                    from: "vcards",
+                    localField: "userId",
+                    foreignField: "ownerId",
+                    as: "vcardData"
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    name: 1,
+                    industry: 1,
+                    address: 1,
+                    website: 1,
+                    contactEmail: 1,
+                    phone: 1,
+                    socials: 1,
+                    description: 1,
+                    logo: 1,
+                    userData: { $arrayElemAt: ["$userData", 0] },
+                    roleData: { $arrayElemAt: ["$roleData", 0] },
+                    socialsData: 1,
+                    vcardData: { $arrayElemAt: ["$vcardData", 0] }
+                }
+            }
+        ]).toArray();
+
+        dbLogger.info('Data aggregation successful:', result);
+        return result;
+
+    } catch (error) {
+        dbLogger.error({ message: 'Error aggregating data', error });
         throw error;
     } finally {
         await client.close();
