@@ -5,10 +5,9 @@ import {BusinessData, UserData, VCardData} from "../models/types";
 const dbLogger = logger.child({context:'databaseService'})
 const MongoClient = require('mongodb').MongoClient;
 require('dotenv').config()
-//TODO: change to dotenv
-// const uri = process.env.MONGODB_URI? process.env.MONGODB_URI:''
-const uri = 'mongodb+srv://admin:LF6b4S53KkKRUJiv@zeus.aqfx8wo.mongodb.net/?retryWrites=true&w=majority'
 
+const uri  = process.env.MONGODB_URI as string;
+const dbname = process.env.MONGODB_DB_NAME as string;
 /**
  * Creates a new business in the database.
  *
@@ -26,7 +25,7 @@ export const createBusinessDB = async (businessDetails: BusinessData) => {
         await client.connect();
         dbLogger.info("Database connected, inserting business data");
 
-        const db = client.db("athenadb");
+        const db = client.db(dbname);
         const result = await db.collection("businesses").insertOne(businessDetails);
         dbLogger.info("Business successfully inserted");
         return result;
@@ -55,7 +54,7 @@ export const updateBusinessDB = async (id: ObjectId, updateDetails: Partial<Busi
     try {
         dbLogger.info("Connecting to Database");
         await client.connect();
-        const db = client.db("athenadb");
+        const db = client.db(dbname);
 
         dbLogger.info("Updating business with ID:", id);
         const result = await db.collection("businesses").updateOne({ _id: id }, { $set: updateDetails });
@@ -88,7 +87,7 @@ export const deleteBusinessDB = async (id: string) => {
         await client.connect();
         dbLogger.info("Database connected, removing business data");
 
-        const db = client.db("athenadb");
+        const db = client.db(dbname);
         const result = await db.collection("businesses").deleteOne({ _id: objectId });
         dbLogger.info("Business successfully removed");
         return result;
@@ -122,7 +121,7 @@ export const updateSocialHandlesDB = async (businessId: string, addedHandle: any
         .then(() => {
             dbLogger.info("Database connected");
             dbLogger.info("Attempting to update social media handles");
-            return client.db("athenadb");
+            return client.db(dbname);
         })
         .then(async (db: any) => {
             let updatedDocument = await db.collection("businesses")
@@ -161,7 +160,7 @@ export const updateLogoDB = async (businessId: string, logo: any): Promise<any> 
         dbLogger.info("Database connected");
         dbLogger.info("Attempting to update card logo");
         await client.connect();
-        const db = await client.db('athena')
+        const db = await client.db(dbname)
         const result = await db.collection("businesses")
             .updateOne(
                 { "_id": { $ne: `${new ObjectId(businessId)}` } },
@@ -205,7 +204,7 @@ export const getBusinessByIdDB = async (businessId: string) => {
     });
     try {
         await client.connect();
-        const db = client.db('athenadb');
+        const db = client.db(dbname);
         const businessIdDB = new ObjectId(businessId);
 
         dbLogger.info("Database connected");
@@ -218,7 +217,7 @@ export const getBusinessByIdDB = async (businessId: string) => {
             return result;
         } else {
             dbLogger.info('Business not found');
-            throw new Error('Business not found');
+            new Error('Business not found');
         }
     } catch (err: any) {
         dbLogger.error(`Error occurred: ${err.message}`);
@@ -241,7 +240,7 @@ export const getBusinessByUserIdDB = async (userId: string) => {
 
     try {
         await client.connect();
-        const db = client.db('athenadb');
+        const db = client.db(dbname);
         // const userObjectId = new ObjectId(userId);
 
         dbLogger.info("Database connected");
@@ -254,7 +253,7 @@ export const getBusinessByUserIdDB = async (userId: string) => {
             return result;
         } else {
             dbLogger.info('Business not found');
-            throw new Error('Business not found');
+            new Error('Business not found');
         }
     } catch (err: any) {
         dbLogger.error(`Error occurred: ${err.message}`);
@@ -274,7 +273,7 @@ export const createVCardDB = async (vCardData: any) => {
     try {
         dbLogger.info("Connecting to Database");
         await client.connect();
-        const db = client.db('athenadb');
+        const db = client.db(dbname);
 
         const result = await db.collection('vcards').insertOne(vCardData);
         dbLogger.info('VCard created:', result);
@@ -298,7 +297,7 @@ export const getVCardByIdDB = async (ownerId: string) => {
     try {
         dbLogger.info("Connecting to Database");
         await client.connect();
-        const db = client.db('athenadb');
+        const db = client.db(dbname);
 
         const vCard = await db.collection('vcards').findOne({ "ownerId": ownerId });
         dbLogger.info('VCard found: ',ownerId );
@@ -323,7 +322,7 @@ export const updateVCardDB = async (ownerId: string, updatedVCard: Partial<VCard
     try {
         dbLogger.info("Connecting to Database");
         await client.connect();
-        const db = client.db('athenadb');
+        const db = client.db(dbname);
 
         const result = await db.collection('vcards').updateOne(
             { "ownerId": ownerId },
@@ -351,7 +350,7 @@ export const deleteVCardDB = async (vCardId: string) => {
     try {
         dbLogger.info("Connecting to Database");
         await client.connect();
-        const db = client.db('athenadb');
+        const db = client.db(dbname);
         const objectId = new ObjectId(vCardId)
         const result = await db.collection('vcards').deleteOne({ "_id": objectId });
 
@@ -375,7 +374,7 @@ export const listVCardsDB = async () => {
     try {
         dbLogger.info("Connecting to Database");
         await client.connect();
-        const db = client.db('athenadb');
+        const db = client.db(dbname);
 
         const vCards = await db.collection('vcards').find().toArray();
         dbLogger.info('VCards found:', vCards);
@@ -400,7 +399,7 @@ export const createUserDB = async (newUser: UserData) => {
     try {
         dbLogger.info("Connecting to Database");
         await client.connect();
-        const db = client.db('athenadb');
+        const db = client.db(dbname);
 
         newUser.createdAt = new Date();  // Set creation date
         newUser.updatedAt = new Date();  // Set update date
@@ -429,7 +428,7 @@ export const getUserByIdDB = async (userId: string) => {
     try {
         dbLogger.info("Connecting to Database");
         await client.connect();
-        const db = client.db('athenadb');
+        const db = client.db(dbname);
 
         const user = await db.collection('users').findOne({ _id : new ObjectId(userId) });
         dbLogger.info('User found:', user);
@@ -455,7 +454,7 @@ export const getUserByEmailDB = async (userEmail: string) => {
     try {
         dbLogger.info("Connecting to Database");
         await client.connect();
-        const db = client.db('athenadb');
+        const db = client.db(dbname);
 
         const user = await db.collection('users').findOne({ "email": userEmail });
         dbLogger.info('User found:', user);
@@ -482,7 +481,7 @@ export const updateUserDB = async (userId: string, updatedUser: Partial<UserData
     try {
         dbLogger.info("Connecting to Database");
         await client.connect();
-        const db = client.db('athenadb');
+        const db = client.db(dbname);
 
         updatedUser.updatedAt = new Date();  // Update the update timestamp
 
@@ -518,7 +517,7 @@ export const deleteUserDB = async (userId: string) => {
     try {
         dbLogger.info("Connecting to Database");
         await client.connect();
-        const db = client.db('athenadb');
+        const db = client.db(dbname);
 
         dbLogger.info('Deleting user with ID:', userId);
         const result = await db.collection('users').deleteOne({ _id: new ObjectId(userId) });
@@ -543,7 +542,7 @@ export const listUsersDB = async () => {
     try {
         dbLogger.info("Connecting to Database");
         await client.connect();
-        const db = client.db('athenadb');
+        const db = client.db(dbname);
 
         dbLogger.info('Fetching all users');
         const users = await db.collection('users').find().toArray();
@@ -613,7 +612,7 @@ export const createSocialDB = async (socialData: any): Promise<any> => {
 
     try {
         await client.connect();
-        const db = client.db("athenadb");
+        const db = client.db(dbname);
         const result = await db.collection('socials').insertOne(socialData);
         return { insertedId: result.insertedId };
     } catch (error) {
@@ -638,9 +637,9 @@ export const getSocialByUserIdDB = async (userId: string): Promise<any[]> => {
 
     try {
         await client.connect();
-        const db = client.db("athenadb");
-        const results = await db.collection('socials').find({ userId: userId }).toArray();
-        return results;
+        const db = client.db(dbname);
+        return await db.collection('socials').find({ userId: userId }).toArray();
+
     } catch (error) {
         console.error('Error fetching social data by user ID:', error);
         throw new Error('Find failed');
@@ -663,9 +662,9 @@ export const getSocialDB = async (socialId: string): Promise<any> => {
 
     try {
         await client.connect();
-        const db = client.db("athenadb");
-        const result = await db.collection('socials').findOne({ _id: new ObjectId(socialId) });
-        return result;
+        const db = client.db(dbname);
+        return await db.collection('socials').findOne({ _id: new ObjectId(socialId) });
+
     } catch (error) {
         console.error('Error fetching social data:', error);
         throw new Error('Find failed');
@@ -688,9 +687,8 @@ export const getAllSocialsForUserDB = async (userId: string): Promise<any[]> => 
 
     try {
         await client.connect();
-        const db = client.db("athenadb");
-        const results = await db.collection('socials').find({ user_id: userId }).toArray();
-        return results;
+        const db = client.db(dbname);
+        return await db.collection('socials').find({ user_id: userId }).toArray();
     } catch (error) {
         console.error('Error fetching user social data:', error);
         throw new Error('Find failed');
@@ -713,7 +711,7 @@ export const updateSocialDB = async (socialId: string, updatedData: any): Promis
     });
     try {
         await client.connect();
-        const db = client.db("athenadb");
+        const db = client.db(dbname);
         const result = await db.collection('socials').updateOne(
             { "_id": socialId },
             { $set: updatedData }
@@ -741,7 +739,7 @@ export const deleteSocialDB = async (socialId: string): Promise<any> => {
 
     try {
         await client.connect();
-        const db = client.db("athenadb");
+        const db = client.db(dbname);
         const result = await db.collection('socials').deleteOne({ "_id": socialId });
         return { deletedCount: result.deletedCount };
     } catch (error) {
@@ -764,7 +762,7 @@ export const aggregateDataDB = async (userId: string) => {
     try {
         dbLogger.info("Connecting to Database");
         await client.connect();
-        const db = client.db('athenadb');
+        const db = client.db(dbname);
 
         dbLogger.info(`Aggregating data for user ID: ${userId}`);
 

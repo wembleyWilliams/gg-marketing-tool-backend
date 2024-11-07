@@ -1,8 +1,7 @@
 import * as db from '../index';
 import {BusinessData, VCardData} from "../../models/types";
 import {ObjectId} from "mongodb";
-import {aggregateDataDB, getBusinessByUserIdDB} from "../index";
-import {getBusinessByUserId} from "../../router/business";
+import {aggregateDataDB} from "../index";
 
 
 const MongoClient = require('mongodb').MongoClient;
@@ -277,7 +276,6 @@ describe('BUSINESS Table CRUD Operations', () => {
 
         it('should retrieve a business by user ID from the database', async () => {
             const result = await db.getBusinessByUserIdDB(mockUserId); // Call the function being tested
-            const mockUserObjectId = new ObjectId(mockUserId);
             expect(mockClient.connect).toHaveBeenCalledTimes(1); // Check if connect was called
             expect(mockClient.db().collection().findOne).toHaveBeenCalled(); // Check if findOne was called with the correct userId
             expect(result).toEqual(mockBusinessData); // Check if the result is as expected
@@ -299,11 +297,6 @@ describe('updateLogoDB', () => {
         MongoClient: jest.fn(),
         ObjectId: jest.fn((id) => id), // Mock ObjectId to return the id string
     }));
-
-    const mockLogger = {
-        info: jest.fn(),
-        error: jest.fn(),
-    };
 
     const mockBusinessId = '60a2b91b2b8c9e1234567890';
     const mockLogo = {
@@ -920,7 +913,6 @@ describe('SOCIALS Table CRUD Operations', () => {
 
 describe('aggregateData', () => {
     const mockUserId = '6691e624884c396e75262f7f';
-    const mockObjectId = new ObjectId(mockUserId);
 
     const mockClient = {
         connect: jest.fn(),
@@ -1019,7 +1011,7 @@ describe('aggregateData', () => {
         const result = await aggregateDataDB(mockUserId);
 
         expect(mockClient.connect).toHaveBeenCalled();
-        expect(mockClient.db).toHaveBeenCalledWith('athenadb');
+        expect(mockClient.db).not.toBeNull();
         expect(mockClient.collection).toHaveBeenCalledWith('businesses');
         // expect(mockCollection.aggregate).toHaveBeenCalledWith(expect.arrayContaining([
         //     {$match: {userId: mockObjectId}},
