@@ -2,7 +2,6 @@ import {getVCardByIdDB} from "../database";
 
 const vCardsJS = require('vcards-js');
 
-
 const generateContactCard = async (id: string) => {
 let data : any = await getVCardByIdDB(id).then((res: any)=>{return res})
         // create a new vCard
@@ -38,7 +37,7 @@ let data : any = await getVCardByIdDB(id).then((res: any)=>{return res})
         vCard.lastName = data.lastName;
 
         if (data.logo) {
-            vCard.logo.url = data.logo.url;
+            vCard.logo.embedFromString(`data:image/jpeg;base64,${data.logo.url}`)
             vCard.logo.mediaType = data.logo.mediaType;
             vCard.logo.base64 = data.logo.base64;
         }
@@ -51,7 +50,7 @@ let data : any = await getVCardByIdDB(id).then((res: any)=>{return res})
         vCard.organization = data.organization;
 
         if (data.photo) {
-            vCard.photo.url = data.photo.url;
+            vCard.photo.embedFromString(`data:image/jpeg;base64,${data.logo.url}`)
             vCard.photo.mediaType = data.photo.mediaType;
             vCard.photo.base64 = data.photo.base64;
         }
@@ -83,7 +82,6 @@ let data : any = await getVCardByIdDB(id).then((res: any)=>{return res})
         vCard.workFax = data.workFax;
         vCard.version = data.version;
         vCard.isOrganiztion = true;
-
         return vCard.getFormattedString();
 
 

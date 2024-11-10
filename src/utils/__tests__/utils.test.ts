@@ -1,4 +1,5 @@
 import generateContactCard from '../generateContactCard';
+import hashID from '../hashID';
 import { getVCardByIdDB } from '../../database';
 
 jest.mock('../../database', () => ({
@@ -95,3 +96,9 @@ describe('generateContactCard', () => {
         expect(getVCardByIdDB).toHaveBeenCalledWith('6691e4a5acd809745e822caa');
     });
 });
+
+describe('saltUrl', () => {
+    // it('should return a salted ID string from ID string', async ()=>{
+    //     expect(hashID('6691e4a5acd809745e822caa')).not.toBeNull()
+    // })
+})

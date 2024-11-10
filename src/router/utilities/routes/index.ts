@@ -3,6 +3,7 @@ import generateContactCard from "../../../utils/generateContactCard";
 import logger from '../../../logger/logger';
 import {VCardData} from "../../../models/types";
 import {aggregateDataDB, createVCardDB, deleteVCardDB, updateVCardDB} from "../../../database";
+import hashHandler from "../../../utils/hashID";
 
 const utilityLogger = logger.child({context:'utilityService'})
 
