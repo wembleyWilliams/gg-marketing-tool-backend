@@ -5,6 +5,7 @@ import utility from "./router/utilities";
 import requestLogger from "./logger/requestLogger";
 import logger from "./logger/logger";
 import {healthDB} from "./database";
+import card from "./router/card";
 
 
 const passport = require("passport")
@@ -62,6 +63,8 @@ app.use(passport.session())
 app.use('/user', user)
 app.use('/business', business)
 app.use('/util', utility)
+app.use('/card', card)
+
 app.get('/health' , async (req: any, res: any)=> {
     try {
 
