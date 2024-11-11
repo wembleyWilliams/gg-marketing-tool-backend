@@ -1,6 +1,6 @@
 import logger from '../logger/logger';
 import {ObjectId} from "mongodb";
-import {BusinessData, UserData, VCardData} from "../models/types";
+import {BusinessData, UserData, VCardData, Card} from "../models/types";
 
 const dbLogger = logger.child({context:'databaseService'})
 const MongoClient = require('mongodb').MongoClient;
@@ -749,6 +749,129 @@ export const deleteSocialDB = async (socialId: string): Promise<any> => {
         client.close();
     }
 };
+
+/**
+ * Inserts a new Card into the MongoDB database.
+ * @param cardData The Card object to be inserted.
+ */
+export const createCardDB = async (cardData: any) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const result = await db.collection('cards').insertOne(cardData);
+        dbLogger.info('Card created:', result);
+        return result;
+    } catch (error) {
+        dbLogger.error({ message: 'Error creating Card', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Retrieves a Card by its ID from the MongoDB database.
+ * @param cardId The ID of the Card to be retrieved.
+ */
+export const getCardByIdDB = async (cardId: string) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const objectId = new ObjectId(cardId);
+        const card = await db.collection('cards').findOne({ "_id": objectId });
+        dbLogger.info('Card found:', card);
+        return card;
+    } catch (error) {
+        dbLogger.error({ message: 'Error retrieving Card', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Updates a Card in the MongoDB database by its ID.
+ * @param cardId The ID of the Card to be updated.
+ * @param updatedCard The Card object containing the new data to be set.
+ */
+export const updateCardDB = async (cardId: string, updatedCard: Partial<Card>) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const objectId = new ObjectId(cardId);
+        const result = await db.collection('cards').updateOne(
+            { "_id": objectId },
+            { $set: updatedCard },
+            { upsert: false }
+        );
+        dbLogger.info('Card updated:', result);
+        return result;
+    } catch (error) {
+        dbLogger.error({ message: 'Error updating Card', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Deletes a Card from the MongoDB database by its ID.
+ * @param cardId The ID of the Card to be deleted.
+ */
+export const deleteCardDB = async (cardId: string) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const objectId = new ObjectId(cardId);
+        const result = await db.collection('cards').deleteOne({ "_id": objectId });
+        dbLogger.info('Card deleted:', result);
+        return result;
+    } catch (error) {
+        dbLogger.error({ message: 'Error deleting Card', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Retrieves all Cards from the MongoDB database.
+ */
+export const listCardsDB = async () => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const cards = await db.collection('cards').find().toArray();
+        dbLogger.info('Cards found:', cards);
+        return cards;
+    } catch (error) {
+        dbLogger.error({ message: 'Error listing Cards', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
 
 /**
  * Retrieves consolidated business data by aggregating across multiple collections.
