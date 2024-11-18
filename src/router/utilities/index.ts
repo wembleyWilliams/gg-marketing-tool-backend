@@ -1,4 +1,4 @@
-import {createVCard, deleteVCard, getVCard, updateVCard, aggregateData} from "./routes";
+import {createVCard, deleteVCard, getVCard, updateVCard} from "./routes";
 
 const express = require('express')
 const utility = express.Router()
@@ -11,6 +11,5 @@ utility.put('/contact-card/update', updateVCard)
 
 utility.post('/contact-card', getVCard)
 
-utility.get('/contact-card/info/:userId', aggregateData)
 
 export default utility;

@@ -1,4 +1,4 @@
-import {createCard, getCard, updateCard, deleteCard} from './routes';
+import {createCard, getCard, updateCard, deleteCard, aggregateCardData} from './routes';
 
 const express = require('express')
 const card = express.Router()
@@ -9,6 +9,8 @@ card.delete('/delete/:cardId', deleteCard)
 
 card.put('/update/:cardId', updateCard)
 
-card.get('/info/:cardId', getCard)
+card.get('/:cardId', getCard)
+
+card.get('/info/:cardId', aggregateCardData)
 
 export default card;

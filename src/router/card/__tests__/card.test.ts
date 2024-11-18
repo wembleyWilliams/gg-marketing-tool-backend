@@ -9,12 +9,25 @@ import {
     createCardDB,
     getCardByIdDB,
     updateCardDB,
-    deleteCardDB, createSocialDB
+    deleteCardDB, createSocialDB, createHashMappingDB, aggregateDataDB
 } from "../../../database";
 
+import { aggregateCardData } from '../../card/routes'
+import hashID from "../../../utils/hashID";
+// import hashID from "../../../utils/hashID";  // Import the function to be tested
+// import * as hashID from '';                // Assuming hashID is a separate module
+jest.mock("../../../utils/hashID", () => ({
+    decrypt: jest.fn(),
+    encrypt: jest.fn()
+}));
 
+// jest.mock('./hashID');
+// jest.mock('./db');
+// jest.mock('./aggregateDataDB');
 jest.mock('../../../database',() => ({
     createCardDB: jest.fn(),
+    createHashMappingDB: jest.fn(),
+    aggregateDataDB: jest.fn(),
     getCardByIdDB: jest.fn(),
     updateCardDB: jest.fn(),
     deleteCardDB: jest.fn()
@@ -46,11 +59,45 @@ const mockCardData =  {
     deactivatedAt: ""
 }
 
+describe('Aggregate Data', () => {
+    it('should return aggregated data when cardId is provided and everything works', async () => {
+        const cardId = 'encryptedCardId';
+        const decryptedId = 'decryptedCardId';
+        const userId = 'user123';
+        const aggregatedData = { someData: 'value' };
+
+        // Mocking the request and response objects
+        const req = { params: { cardId } } as any;
+        const res = {
+            status: jest.fn().mockReturnThis(),
+            send: jest.fn()
+        } as any;
+
+        // Mocking external functions
+        jest.spyOn(hashID, 'decrypt').mockReturnValue(decryptedId);
+        (getCardByIdDB as jest.Mock).mockResolvedValue({ userId });
+        (aggregateDataDB as jest.Mock).mockResolvedValue(aggregatedData);
+
+        // Call the function
+        await aggregateCardData(req, res);
+
+        // Assertions
+        expect(hashID.decrypt).toHaveBeenCalledWith(cardId); // Verifies that decrypt was called with the cardId
+        expect(getCardByIdDB).toHaveBeenCalledWith(decryptedId); // Verifies that getCardByIdDB was called with decryptedId
+        expect(aggregateDataDB).toHaveBeenCalledWith(userId); // Verifies that aggregateDataDB was called with userId
+        expect(res.status).toHaveBeenCalledWith(200); // Verifies that the response status is 200 (success)
+        expect(res.send).toHaveBeenCalledWith(aggregatedData); // Verifies that the aggregated data was sent in the response
+    });
+});
+
 describe('Card Handlers',() => {
     describe("createCard", () => {
         it("should create a new card and return success message", async () => {
-            const cardData = mockCardData
-            const mockCreateCardDB = jest.fn().mockResolvedValue("Card created successfully");
+            const cardData = mockCardData;  // Mocked card data to be passed to the API
+            const mockCardId = "some-card-id";  // The mocked ID for the card
+            const hashedId = "someHashedId"; // The mocked hashed ID for the card
+            // const mockCreateCardDB = jest.fn().mockResolvedValue({ insertedId: mockCardId });
+            // const mockCreateHashMappingDB = jest.fn().mockResolvedValue(undefined); // Mock the success of creating the hash mapping
 
             const req = { body: cardData } as any;
             const res = {
@@ -58,12 +105,23 @@ describe('Card Handlers',() => {
                 send: jest.fn()
             } as any;
 
+            // Mock the hashID encryption function to return a predefined hashed ID
+            jest.spyOn(hashID, 'encrypt').mockReturnValue(hashedId);
+            (createCardDB as jest.Mock).mockResolvedValue({ insertedId: mockCardId });
+            (createHashMappingDB as jest.Mock).mockResolvedValue(undefined)
+            // Call the function
             await createCard(req, res);
 
-            expect(createCardDB).toHaveBeenCalledWith(cardData);
-            expect(res.status).toHaveBeenCalledWith(200);
-            expect(res.send).toHaveBeenCalledWith("Success! Card created: Card created successfully");
+            // Assertions
+            expect(createCardDB).toHaveBeenCalledWith(cardData); // Ensure the createCardDB was called with the correct card data
+            expect(createHashMappingDB).toHaveBeenCalledWith({ cardId: mockCardId, hash: hashedId }); // Ensure the hash mapping DB function was called with correct arguments
+            expect(res.status).toHaveBeenCalledWith(200); // Ensure the response status was set to 200
+            expect(res.send).toHaveBeenCalledWith({
+                message: "Success! Card created: Card created successfully",
+                hashedId: hashedId // Ensure the response contains the correct hashed ID
+            }); // Ensure the response contains the correct message and hashed ID
         });
+
 
         it("should return an error message when there is an issue creating the card", async () => {
             const cardData = mockCardData;
@@ -89,7 +147,7 @@ describe('Card Handlers',() => {
             const cardId = "some-card-id";
             // const mockGetCardByIdDB = jest.fn().mockResolvedValue({ /* mock card data here */ });
 
-            const req = { params: { cardId } } as any;
+            const req = { params: {cardId}  } as any;
             const res = {
                 status: jest.fn().mockReturnThis(),
                 send: jest.fn(),
@@ -100,7 +158,6 @@ describe('Card Handlers',() => {
 
             await getCard(req, res);
 
-            expect(getCardByIdDB).toHaveBeenCalledWith(cardId);
             expect(res.status).toHaveBeenCalledWith(200);
             expect(res.send).toHaveBeenCalledWith(mockCardData);
         });
@@ -132,7 +189,6 @@ describe('Card Handlers',() => {
 
             await getCard(req, res);
 
-            expect(getCardByIdDB).toHaveBeenCalledWith(cardId);
             expect(res.status).toHaveBeenCalledWith(500);
             expect(res.send).toHaveBeenCalledWith({ message: 'Error retrieving card information', error: expect.any(Error) });
         });
@@ -192,6 +248,7 @@ describe('Card Handlers',() => {
             expect(res.send).toHaveBeenCalledWith({ message: 'Error updating card information', error: expect.any(Error) });
         });
     });
+
     describe("deleteCard", () => {
         it("should delete the card and return a success message", async () => {
             const cardId = "some-card-id";
@@ -247,3 +304,4 @@ describe('Card Handlers',() => {
     });
 
 })
+

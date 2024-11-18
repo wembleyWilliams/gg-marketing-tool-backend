@@ -85,22 +85,3 @@ export const deleteVCard = async (req: Request, res: Response) => {
     }
 }
 
-export const aggregateData = async (req: Request, res: Response) => {
-    let userId = req.params.userId;
-
-    if (userId) {
-        let aggregatedData = await aggregateDataDB(userId)
-            .then((result) => {
-                return result;
-            })
-            .catch((err: any) => {
-                utilityLogger.error('Error aggregating data', { error: err });
-                res.status(500).send({ message: 'Error aggregating data', error: err });
-            });
-
-        res.status(200).send(aggregatedData);
-    } else {
-        utilityLogger.error('Error aggregating data: user ID not provided');
-        res.status(400).send({ message: 'Unable to find user ID' });
-    }
-};

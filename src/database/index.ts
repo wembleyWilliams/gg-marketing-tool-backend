@@ -8,6 +8,7 @@ require('dotenv').config()
 
 const uri  = process.env.MONGODB_URI as string;
 const dbname = process.env.MONGODB_DB_NAME as string;
+
 /**
  * Creates a new business in the database.
  *
@@ -649,6 +650,32 @@ export const getSocialByUserIdDB = async (userId: string): Promise<any[]> => {
 };
 
 /**
+ * Retrieves a social media record by the business's ID.
+ *
+ * @param {string} businessId - The ID of the business to retrieve the social media records for.
+ * @returns {Promise<any[]>} A list of social media records for the business.
+ */
+export const getSocialByBusinessIdDB = async (businessId: string): Promise<any[]> => {
+    const client = new MongoClient(encodeURI(uri), {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    });
+
+    try {
+        await client.connect();
+        const db = client.db(dbname);
+        return await db.collection('socials').find({ businessId: businessId }).toArray();
+
+    } catch (error) {
+        console.error('Error fetching social data by business ID:', error);
+        throw new Error('Find failed');
+    } finally {
+        client.close();
+    }
+};
+
+
+/**
  * Retrieves a social media record by its ID.
  *
  * @param {string} socialId - The ID of the social media record to retrieve.
@@ -784,8 +811,7 @@ export const getCardByIdDB = async (cardId: string) => {
         await client.connect();
         const db = client.db(dbname);
 
-        const objectId = new ObjectId(cardId);
-        const card = await db.collection('cards').findOne({ "_id": objectId });
+        const card = await db.collection('cards').findOne({ "_id": cardId });
         dbLogger.info('Card found:', card);
         return card;
     } catch (error) {
@@ -809,9 +835,8 @@ export const updateCardDB = async (cardId: string, updatedCard: Partial<Card>) =
         await client.connect();
         const db = client.db(dbname);
 
-        const objectId = new ObjectId(cardId);
         const result = await db.collection('cards').updateOne(
-            { "_id": objectId },
+            { "_id": cardId },
             { $set: updatedCard },
             { upsert: false }
         );
@@ -837,13 +862,12 @@ export const deleteCardDB = async (cardId: string) => {
         await client.connect();
         const db = client.db(dbname);
 
-        const objectId = new ObjectId(cardId);
-        const result = await db.collection('cards').deleteOne({ "_id": objectId });
+        const result = await db.collection('cards').deleteOne({ "_id": cardId });
         dbLogger.info('Card deleted:', result);
         return result;
     } catch (error) {
         dbLogger.error({ message: 'Error deleting Card', error });
-        return null;
+        return error;
     } finally {
         await client.close();
         dbLogger.info("Connection closed");
@@ -872,6 +896,130 @@ export const listCardsDB = async () => {
     }
 };
 
+/**
+ * Inserts a new mapping of a card's hash and its MongoDB ID.
+ * @param {Object} mappingData - The data containing cardId and its corresponding hash.
+ * @param {ObjectId} mappingData.cardId - The original MongoDB ID of the card.
+ * @param {string} mappingData.hash - The generated hash for the card.
+ * @returns {Promise<any>} The result of the insert operation.
+ */
+export const createHashMappingDB = async (mappingData: { cardId: string, hash: string }): Promise<any> => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const result = await db.collection('cardHashMappings').insertOne(mappingData);
+        dbLogger.info('Hash mapping created:', result);
+        return result;
+    } catch (error) {
+        dbLogger.error({ message: 'Error creating hash mapping', error });
+        throw new Error('Failed to create hash mapping');
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Retrieves a mapping entry by its hash.
+ * @param {string} hash - The hash to search for in the database.
+ * @returns {Promise<any>} The mapping data containing the original card ID if found.
+ */
+export const getHashMappingByHashDB = async (hash: string): Promise<any> => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const mapping = await db.collection('cardHashMappings').findOne({ hash });
+        dbLogger.info('Hash mapping found:', mapping);
+        return mapping;
+    } catch (error) {
+        dbLogger.error({ message: 'Error retrieving hash mapping', error });
+        throw new Error('Failed to retrieve hash mapping');
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Updates an existing hash mapping entry by its cardId.
+ * @param cardId
+ * @param {Partial<{hash: string}>} updatedData - The updated hash data.
+ * @returns {Promise<any>} The result of the update operation.
+ */
+export const updateHashMappingDB = async (cardId: string, updatedData: Partial<{ hash: string }>): Promise<any> => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const result = await db.collection('cardHashMappings').updateOne(
+            { cardId },
+            { $set: updatedData }
+        );
+        dbLogger.info('Hash mapping updated:', result);
+        return result;
+    } catch (error) {
+        dbLogger.error({ message: 'Error updating hash mapping', error });
+        throw new Error('Failed to update hash mapping');
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Deletes a hash mapping entry by its cardId.
+ * @param cardId - The MongoDB ID of the card to delete the hash mapping for.
+ * @returns {Promise<any>} The result of the delete operation.
+ */
+export const deleteHashMappingDB = async (cardId: string): Promise<any> => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const result = await db.collection('cardHashMappings').deleteOne({ cardId });
+        dbLogger.info('Hash mapping deleted:', result);
+        return result;
+    } catch (error) {
+        dbLogger.error({ message: 'Error deleting hash mapping', error });
+        throw new Error('Failed to delete hash mapping');
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Retrieves all hash mappings from the database.
+ * @returns {Promise<any[]>} An array of all hash mappings.
+ */
+export const listHashMappingsDB = async (): Promise<any[]> => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const mappings = await db.collection('cardHashMappings').find().toArray();
+        dbLogger.info('Hash mappings retrieved:', mappings);
+        return mappings;
+    } catch (error) {
+        dbLogger.error({ message: 'Error listing hash mappings', error });
+        throw new Error('Failed to list hash mappings');
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
 
 /**
  * Retrieves consolidated business data by aggregating across multiple collections.
@@ -887,66 +1035,70 @@ export const aggregateDataDB = async (userId: string) => {
         await client.connect();
         const db = client.db(dbname);
 
-        dbLogger.info(`Aggregating data for user ID: ${userId}`);
+        if (userId) {
+            dbLogger.info(`Aggregating data for user ID: ${userId}`);
 
-        const result = await db.collection('businesses').aggregate([
-            {
-                $match: { userId: userId } // Ensure `userId` matches type and value
-            },
-            {
-                $lookup: {
-                    from: "users",
-                    localField: "userId",
-                    foreignField: "_id",
-                    as: "userData"
+            const result = await db.collection('businesses').aggregate([
+                {
+                    $match: {userId: userId} // Ensure `userId` matches type and value
+                },
+                {
+                    $lookup: {
+                        from: "users",
+                        localField: "userId",
+                        foreignField: "_id",
+                        as: "userData"
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "roles",
+                        localField: "userId",
+                        foreignField: "userId",
+                        as: "roleData"
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "socials",
+                        localField: "userId",
+                        foreignField: "userId",
+                        as: "socialsData"
+                    }
+                },
+                {
+                    $lookup: {
+                        from: "vcards",
+                        localField: "userId",
+                        foreignField: "ownerId",
+                        as: "vcardData"
+                    }
+                },
+                {
+                    $project: {
+                        _id: 1,
+                        name: 1,
+                        industry: 1,
+                        address: 1,
+                        website: 1,
+                        contactEmail: 1,
+                        phone: 1,
+                        socials: 1,
+                        description: 1,
+                        logo: 1,
+                        userData: {$arrayElemAt: ["$userData", 0]},
+                        roleData: {$arrayElemAt: ["$roleData", 0]},
+                        socialsData: 1,
+                        vcardData: {$arrayElemAt: ["$vcardData", 0]}
+                    }
                 }
-            },
-            {
-                $lookup: {
-                    from: "roles",
-                    localField: "userId",
-                    foreignField: "userId",
-                    as: "roleData"
-                }
-            },
-            {
-                $lookup: {
-                    from: "socials",
-                    localField: "userId",
-                    foreignField: "userId",
-                    as: "socialsData"
-                }
-            },
-            {
-                $lookup: {
-                    from: "vcards",
-                    localField: "userId",
-                    foreignField: "ownerId",
-                    as: "vcardData"
-                }
-            },
-            {
-                $project: {
-                    _id: 1,
-                    name: 1,
-                    industry: 1,
-                    address: 1,
-                    website: 1,
-                    contactEmail: 1,
-                    phone: 1,
-                    socials: 1,
-                    description: 1,
-                    logo: 1,
-                    userData: { $arrayElemAt: ["$userData", 0] },
-                    roleData: { $arrayElemAt: ["$roleData", 0] },
-                    socialsData: 1,
-                    vcardData: { $arrayElemAt: ["$vcardData", 0] }
-                }
-            }
-        ]).toArray();
+            ]).toArray();
 
-        dbLogger.info('Data aggregation successful:', result);
-        return result;
+            dbLogger.info('Data aggregation successful:', result);
+            return result;
+        } else {
+            dbLogger.error(`Data aggregation unsuccessful. User ID : ${userId}`);
+        }
 
     } catch (error) {
         dbLogger.error({ message: 'Error aggregating data', error });
