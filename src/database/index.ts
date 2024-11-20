@@ -1021,6 +1021,157 @@ export const listHashMappingsDB = async (): Promise<any[]> => {
     }
 };
 
+
+/**
+ * Inserts a new CardMetric into the MongoDB database.
+ * @param cardMetricData The CardMetric object to be inserted.
+ * @returns The result of the insertion operation.
+ */
+export const createCardMetricDB = async (cardMetricData: any) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const result = await db.collection('cardMetrics').insertOne(cardMetricData);
+        dbLogger.info('CardMetric created:', result);
+        return result;
+    } catch (error) {
+        dbLogger.error({ message: 'Error creating CardMetric', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Retrieves a CardMetric by its ID from the MongoDB database.
+ * @param cardMetricId The ID of the CardMetric to be retrieved.
+ * @returns The CardMetric object if found, otherwise null.
+ */
+export const getCardMetricByIdDB = async (cardMetricId: string) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const cardMetric = await db.collection('cardMetrics').findOne({ "_id": cardMetricId });
+        dbLogger.info('CardMetric found:', cardMetric);
+        return cardMetric;
+    } catch (error) {
+        dbLogger.error({ message: 'Error retrieving CardMetric', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Retrieves a CardMetric by its cardId from the MongoDB database.
+ * @param cardId The ID of the Card associated with the CardMetric to be retrieved.
+ * @returns The CardMetric object if found, otherwise null.
+ */
+export const getCardMetricByCardIdDB = async (cardId: string) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        // Querying by cardId
+        const cardMetric = await db.collection('cardMetrics').findOne({ "cardId": cardId });
+        dbLogger.info('CardMetric found:', cardMetric);
+        return cardMetric;
+    } catch (error) {
+        dbLogger.error({ message: 'Error retrieving CardMetric by cardId', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+
+/**
+ * Updates a CardMetric in the MongoDB database by its ID.
+ * @param cardMetricId The ID of the CardMetric to be updated.
+ * @param updatedCardMetric The CardMetric object containing the new data to be set.
+ * @returns The result of the update operation.
+ */
+export const updateCardMetricDB = async (cardMetricId: string, updatedCardMetric: Partial<any>) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const result = await db.collection('cardMetrics').updateOne(
+            { "cardId": cardMetricId },
+            { $set: updatedCardMetric },
+            { upsert: false }
+        );
+        dbLogger.info('CardMetric updated:', result);
+        return result;
+    } catch (error) {
+        dbLogger.error({ message: 'Error updating CardMetric', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Deletes a CardMetric from the MongoDB database by its ID.
+ * @param cardId The associated cardID of the CardMetric to be deleted.
+ * @returns The result of the delete operation.
+ */
+export const deleteCardMetricDB = async (cardId: string) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const result = await db.collection('cardMetrics').deleteOne({ "cardId": cardId });
+        dbLogger.info('CardMetric deleted:', result);
+        return result;
+    } catch (error) {
+        dbLogger.error({ message: 'Error deleting CardMetric', error });
+        return error;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Retrieves all CardMetrics from the MongoDB database.
+ * @returns An array of CardMetrics.
+ */
+export const listCardMetricsDB = async () => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const cardMetrics = await db.collection('cardMetrics').find().toArray();
+        dbLogger.info('CardMetrics found:', cardMetrics);
+        return cardMetrics;
+    } catch (error) {
+        dbLogger.error({ message: 'Error listing CardMetrics', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
 /**
  * Retrieves consolidated business data by aggregating across multiple collections.
  *

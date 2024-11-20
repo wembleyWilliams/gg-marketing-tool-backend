@@ -4,13 +4,13 @@ import {
     updateCard,
     deleteCard,
     aggregateCardData
-} from '../index';  // Assuming your card controller is in routes.js
+} from '../../index';  // Assuming your card controller is in routes.js
 
 import request from 'supertest';
 import express from 'express';
-import card from '../../../../router/card';  // Assuming your card routes are in an index.js file
+import card from '../index';  // Assuming your card routes are in an index.js file
 
-jest.mock('../index', () => ({
+jest.mock('../../index', () => ({
     createCard: jest.fn(),
     getCard: jest.fn(),
     updateCard: jest.fn(),

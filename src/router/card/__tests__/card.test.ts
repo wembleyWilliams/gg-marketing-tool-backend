@@ -3,16 +3,16 @@ import {
     deleteCard,
     getCard,
     updateCard
-} from "../routes";
+} from "../index";
 
 import {
     createCardDB,
     getCardByIdDB,
     updateCardDB,
-    deleteCardDB, createSocialDB, createHashMappingDB, aggregateDataDB
+    deleteCardDB, createHashMappingDB, aggregateDataDB
 } from "../../../database";
 
-import { aggregateCardData } from '../../card/routes'
+import { aggregateCardData } from '../index'
 import hashID from "../../../utils/hashID";
 // import hashID from "../../../utils/hashID";  // Import the function to be tested
 // import * as hashID from '';                // Assuming hashID is a separate module
@@ -34,13 +34,6 @@ jest.mock('../../../database',() => ({
 }));
 
 
-// Mock response object
-const mockResponse = () => {
-    const res: any = {};
-    res.status = jest.fn().mockReturnValue(res);
-    res.send = jest.fn().mockReturnValue(res);
-    return res;
-};
 
 const mockCardData =  {
     userId: "673084d2a230c0919e78463a",
@@ -269,7 +262,6 @@ describe('Card Handlers',() => {
         });
 
         it("should return an error when the card ID is not provided", async () => {
-            const cardId = "some-card-id";
             const req = { params: { } } as any;
             const res = {
                 status: jest.fn().mockReturnThis(),

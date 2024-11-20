@@ -1,14 +1,13 @@
 import request from 'supertest';
 import express from 'express';
-import {createVCard, getVCard, updateVCard, deleteVCard} from '../routes';
-import {aggregateDataDB, createVCardDB, deleteVCardDB, updateVCardDB} from '../../../database';
+import {createVCard, getVCard, updateVCard, deleteVCard} from '../index';
+import {createVCardDB, deleteVCardDB, updateVCardDB} from '../../../database';
 import generateContactCard from '../../../utils/generateContactCard';
-import logger from '../../../logger/logger';
-import {aggregateCardData} from "../../card/routes";
+
 
 jest.mock('../../../database');
 jest.mock('../../../utils/generateContactCard');
-// jest.mock('../../../logger/logger');
+
 jest.mock('../../../logger/logger', () => ({
     child: jest.fn(() => ({
         error: jest.fn(),

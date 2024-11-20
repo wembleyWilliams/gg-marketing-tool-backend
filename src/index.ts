@@ -1,11 +1,15 @@
 import user from "./router/user";
 import business from "./router/business/routes";
+import card from "./router/card/routes";
+import metric from "./router/cardMetric/routes";
+import utility from "./router/utilities/routes";
+
+
 import passportService from './config/passport'
-import utility from "./router/utilities";
 import requestLogger from "./logger/requestLogger";
 import logger from "./logger/logger";
 import {healthDB} from "./database";
-import card from "./router/card";
+
 
 
 const passport = require("passport")
@@ -64,6 +68,7 @@ app.use('/user', user)
 app.use('/business', business)
 app.use('/util', utility)
 app.use('/card', card)
+app.use('/metric',metric)
 
 app.get('/health' , async (req: any, res: any)=> {
     try {
