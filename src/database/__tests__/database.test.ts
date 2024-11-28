@@ -4,10 +4,9 @@ import {ObjectId} from "mongodb";
 import {aggregateDataDB} from "../index";
 
 
+
 const MongoClient = require('mongodb').MongoClient;
 jest.mock('mongodb');
-// jest.mock('../index');
-// jest.mock('./dbLogger');
 
 // Mock data
 const businessData: BusinessData = {
@@ -223,6 +222,9 @@ beforeEach(()=>{
     MongoClient.mockReturnValue(mockClient);
 })
 
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
 
     describe('createCardDB', () => {
 
@@ -263,7 +265,9 @@ beforeEach(()=>{
         it('should retrieve a card by its ID', async () => {
             const cardId = 'some-card-id';
             const result = await db.getCardByIdDB(cardId);
-            expect(mockClient.db().collection().findOne).toHaveBeenCalledWith({"_id": cardId});
+
+
+            expect(mockClient.db().collection().findOne).toHaveBeenCalledWith({"_id": expect.any(Object)});
             expect(result).toEqual({cardData});
         });
 
@@ -291,13 +295,13 @@ beforeEach(()=>{
     describe('updateCardDB', () => {
         it('should update a card and return the result', async () => {
             const cardId = 'some-card-id';
-            const updatedCard = {status: 'inactive'};
+            const updatedCard = {status: false};
             const mockResult = {modifiedCount: 1};
 
-            const result = await db.updateCardDB(cardId, {status: "inactive"});
+            const result = await db.updateCardDB(cardId, {status: false});
             expect(mockClient.connect).toHaveBeenCalledTimes(1);
             expect(mockClient.db().collection().updateOne).toHaveBeenCalledWith(
-                {"_id": cardId},
+                {"_id": expect.any(Object)},
                 {$set: updatedCard},
                 {upsert: false}
             );
@@ -318,7 +322,7 @@ beforeEach(()=>{
             }
 
             MongoClient.mockReturnValue(mockClient);
-            const result = await db.updateCardDB(cardId, {status: "inactive"});
+            const result = await db.updateCardDB(cardId, {status: false});
 
             expect(result).toBeNull();
         });
@@ -1431,7 +1435,7 @@ describe('aggregateData', () => {
 
         expect(mockClient.connect).toHaveBeenCalled();
         expect(mockClient.db).not.toBeNull();
-        expect(mockClient.collection).toHaveBeenCalledWith('businesses');
+        expect(mockClient.collection).toHaveBeenCalledWith('cards');
         // expect(mockCollection.aggregate).toHaveBeenCalledWith(expect.arrayContaining([
         //     {$match: {userId: mockObjectId}},
         //     expect.objectContaining({

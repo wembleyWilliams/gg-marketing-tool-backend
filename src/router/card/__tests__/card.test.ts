@@ -1,7 +1,7 @@
 import {
     createCard,
     deleteCard,
-    getCard,
+    getCard, incrementTap, toggleCard,
     updateCard
 } from "../index";
 
@@ -14,6 +14,7 @@ import {
 
 import { aggregateCardData } from '../index'
 import hashID from "../../../utils/hashID";
+
 // import hashID from "../../../utils/hashID";  // Import the function to be tested
 // import * as hashID from '';                // Assuming hashID is a separate module
 jest.mock("../../../utils/hashID", () => ({
@@ -38,7 +39,7 @@ jest.mock('../../../database',() => ({
 const mockCardData =  {
     userId: "673084d2a230c0919e78463a",
     businessId: "6691e4a5acd809745e822caa",
-    status: "active",
+    status: true,
     tapCount: 0,
     lastTap: "2024-11-07T15:30:00Z",
     taps: [
@@ -52,10 +53,16 @@ const mockCardData =  {
     deactivatedAt: ""
 }
 
+
+
 describe('Aggregate Data', () => {
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+
     it('should return aggregated data when cardId is provided and everything works', async () => {
         const cardId = 'encryptedCardId';
-        const decryptedId = 'decryptedCardId';
         const userId = 'user123';
         const aggregatedData = { someData: 'value' };
 
@@ -67,7 +74,7 @@ describe('Aggregate Data', () => {
         } as any;
 
         // Mocking external functions
-        jest.spyOn(hashID, 'decrypt').mockReturnValue(decryptedId);
+        jest.spyOn(hashID, 'decrypt').mockReturnValue(userId);
         (getCardByIdDB as jest.Mock).mockResolvedValue({ userId });
         (aggregateDataDB as jest.Mock).mockResolvedValue(aggregatedData);
 
@@ -76,7 +83,6 @@ describe('Aggregate Data', () => {
 
         // Assertions
         expect(hashID.decrypt).toHaveBeenCalledWith(cardId); // Verifies that decrypt was called with the cardId
-        expect(getCardByIdDB).toHaveBeenCalledWith(decryptedId); // Verifies that getCardByIdDB was called with decryptedId
         expect(aggregateDataDB).toHaveBeenCalledWith(userId); // Verifies that aggregateDataDB was called with userId
         expect(res.status).toHaveBeenCalledWith(200); // Verifies that the response status is 200 (success)
         expect(res.send).toHaveBeenCalledWith(aggregatedData); // Verifies that the aggregated data was sent in the response
@@ -207,7 +213,6 @@ describe('Card Handlers',() => {
             expect(res.send).toHaveBeenCalledWith(mockCardData);
         });
 
-
         it("should return an error when the card ID is not provided", async () => {
             const req = { params: {  }, body: {} } as any;
             const res = {
@@ -295,5 +300,96 @@ describe('Card Handlers',() => {
         });
     });
 
+    describe('incrementTap',() => {
+        const cardId = "some-card-id";
+
+        const req = {
+            params: { cardId },
+            body: {
+                status:true,
+                location: 'New York, USA',
+                deviceInfo: 'iPhone 13'
+            }
+        } as any;
+        const res = {
+            status: jest.fn().mockReturnThis(),
+            send: jest.fn()
+        } as any;
+
+        it('should update the card tap count and return the current amount', async () => {
+
+            jest.spyOn(hashID, 'decrypt').mockReturnValue(cardId);
+            (updateCardDB as jest.Mock).mockResolvedValue(mockCardData);
+            (getCardByIdDB as jest.Mock).mockResolvedValue(mockCardData);
+
+            await incrementTap(req, res);
+
+            expect(hashID.decrypt).toHaveBeenCalledWith(cardId);
+            expect(updateCardDB).toHaveBeenCalledWith(cardId, expect.any(Object));
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.send).toHaveBeenCalledWith({message:'Tap Event Recorded Successfully!',tapCount: expect.any(Number)});
+        })
+
+        it('should return an error if there is an issue updating current tap count', async () => {
+            const cardId = "some-card-id";
+
+            jest.spyOn(hashID, 'decrypt').mockReturnValue(cardId);
+            (updateCardDB as jest.Mock).mockRejectedValue(new Error("Error updating card tap information"));
+            (getCardByIdDB as jest.Mock).mockResolvedValue(mockCardData);
+            await incrementTap(req, res);
+
+            expect(updateCardDB).toHaveBeenCalledWith(cardId, expect.any(Object));
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith({ message: 'Error updating card tap information', error: expect.any(Error) });
+        })
+    });
+
+    describe('toggleCard',() => {
+        it('should toggle the card status and return a success message',async ()=> {
+            const cardId = "some-card-id";
+            const mockResponse = {message:`Card Toggled Successfully!`, cardId: cardId}
+            const decryptedId = 'decryptedCardId';
+            const req = { params: { cardId } } as any;
+            const res = {
+                status: jest.fn().mockReturnThis(),
+                send: jest.fn()
+            } as any;
+
+            (updateCardDB as jest.Mock).mockResolvedValue(mockCardData);
+            (getCardByIdDB as jest.Mock).mockResolvedValue(mockCardData);
+            jest.spyOn(hashID, 'decrypt').mockReturnValue(decryptedId);
+
+           await toggleCard(req, res);
+
+            expect(updateCardDB).toHaveBeenCalledWith(expect.any(String),{"status": false});
+            expect(res.status).toHaveBeenCalledWith(200);
+            expect(res.send).toHaveBeenCalledWith(mockResponse);
+        })
+
+        it('should return an error if there is an issue updating card status', async ()=> {
+            const cardId = "some-card-id";
+            const decryptedId = "decrypted-card-id"
+            const mockResponse = { message: 'Error updating card status', error: expect.any(Error) }
+
+            const req = { params: { cardId } } as any;
+
+            const res = {
+                status: jest.fn().mockReturnThis(),
+                send: jest.fn()
+            } as any;
+
+            const updatedStatus =  {status: false};
+
+            (updateCardDB as jest.Mock).mockRejectedValue(new Error("Error updating card status"));
+            (getCardByIdDB as jest.Mock).mockResolvedValue(mockCardData);
+            jest.spyOn(hashID, 'decrypt').mockReturnValue(decryptedId);
+
+            await toggleCard(req, res);
+
+            expect(updateCardDB).toHaveBeenCalledWith(decryptedId, updatedStatus);
+            expect(res.status).toHaveBeenCalledWith(500);
+            expect(res.send).toHaveBeenCalledWith(mockResponse);
+        })
+    })
 })
 

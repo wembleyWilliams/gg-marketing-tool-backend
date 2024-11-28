@@ -9,6 +9,7 @@ import {
     updateCardDB
 } from "../../database";
 import hashID from "../../utils/hashID";
+import {Tap} from "../../models/types";
 
 const cardsLogger = logger.child({ context: 'cardsService' });
 
@@ -166,16 +167,84 @@ export const deleteCard = async (req: Request, res: Response): Promise<void> => 
     }
 };
 
+export const incrementTap = async (req: Request, res: Response) => {
+    const cardId = req.params.cardId;
+    const info = req.body
+    if (cardId) {
+        const decryptedId = hashID.decrypt(cardId) as string
+
+        const card = await getCardByIdDB(decryptedId);
+        if (card?.status){
+            let tapCount = card?.tapCount
+            let taps = card?.taps
+
+            let newTap: Tap = {
+                timestamp: new Date().toISOString(),
+                location: info.location,
+                deviceInfo: info.deviceInfo
+            }
+
+            let updatedTapData = {
+                tapCount: tapCount ? tapCount + 1 : 1,
+                taps: [...(taps || []), newTap]
+            }
+
+            try {
+                const updatedCard = await updateCardDB(decryptedId, updatedTapData);
+
+                if (!updatedCard) {
+                    cardsLogger.error('Card not found');
+                    res.status(400).send({message: 'Unable to update card taps'});
+                } else {
+                    res.status(200).send({message: 'Tap Event Recorded Successfully!', tapCount: updatedCard.tapCount});
+                }
+            } catch (err) {
+                cardsLogger.error('Error updating card tap information', {error: err});
+                res.status(500).send({message: 'Error updating card tap information', error: err});
+            }
+        } else {
+            cardsLogger.warn('Card not active');
+            res.status(400).send({message: 'Card not active'})
+        }
+    }
+}
+
+export const toggleCard = async (req: Request, res: Response) => {
+    const cardId = req.params.cardId;
+    if (cardId) {
+        const decryptedId = hashID.decrypt(cardId) as string
+        const card = await getCardByIdDB(decryptedId);
+        let status = card?.status
+        let updatedStatus =  {status: !status}
+
+        try {
+
+            const updatedCard = await updateCardDB(decryptedId, updatedStatus);
+
+            if (!updatedCard) {
+                cardsLogger.error('Card not found');
+                res.status(400).send({ message: 'Unable to update card status' });
+            } else {
+                res.status(200).send({message:`Card Toggled Successfully!`, cardId: cardId});
+            }
+        } catch (err) {
+            cardsLogger.error('Error updating card status', { error: err });
+            res.status(500).send({ message: 'Error updating card status', error: err });
+        }
+    } else {
+
+    }
+
+}
+
 export const aggregateCardData = async (req: Request, res: Response) => {
     let cardId = req.params.cardId;
 
     if (cardId) {
         const decryptedId = hashID.decrypt(cardId) as string
 
-        let card = await getCardByIdDB(decryptedId)
-        let aggregatedData = await aggregateDataDB(card?.userId)
+        let aggregatedData = await aggregateDataDB(decryptedId)
             .then((result) => {
-
                 return result;
             })
             .catch((err: any) => {
