@@ -1,3 +1,11 @@
+# [1.3.0](https://github.com/wembleyWilliams/gg-marketing-tool-backend/compare/v1.2.0...v1.3.0) (2024-12-01)
+
+
+### Features
+
+* Added cardmetrics table along with  database operations, cardMetricsRoutes.test.ts has a known but low priority bug, tests have been disabled for that specific suite ([bf93942](https://github.com/wembleyWilliams/gg-marketing-tool-backend/commit/bf939425c5e21052b374c8a7d3be8e3e2ec5a61e))
+* completed tap increment and card toggle features. ([5e831ed](https://github.com/wembleyWilliams/gg-marketing-tool-backend/commit/5e831ed069947b734e1062d7713abdd8b905eabc))
+
 # [1.2.0](https://github.com/wembleyWilliams/gg-marketing-tool-backend/compare/v1.1.0...v1.2.0) (2024-11-01)
 
 
