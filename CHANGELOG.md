@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/wembleyWilliams/gg-marketing-tool-backend/compare/v1.3.0...v1.4.0) (2024-12-02)
+
+
+### Features
+
+* completed tap increment and card toggle features. ([bebb082](https://github.com/wembleyWilliams/gg-marketing-tool-backend/commit/bebb082d78e785520da93287c24416b9139e48e4))
+
 # [1.3.0](https://github.com/wembleyWilliams/gg-marketing-tool-backend/compare/v1.2.0...v1.3.0) (2024-12-01)
 
 
