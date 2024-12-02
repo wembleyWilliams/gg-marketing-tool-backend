@@ -35,7 +35,11 @@ const hashHandler = {
             hashLogger.info('Data decryption successful!')
             return decrypted;
         } catch (error) {
-            hashLogger.error('Data decryption unsuccessful!', {error: error})
+            hashLogger.error(`Data decryption unsuccessful!
+            error: ${error},
+            encrypted data: ${encryptedData},
+            key: ${secretKey.toString('hex')}`
+                , {error: error})
         }
 
     },
