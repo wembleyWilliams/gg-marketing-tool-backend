@@ -1,5 +1,5 @@
 import generateContactCard from '../generateContactCard';
-import hashID from '../hashID';
+import hashID from '../hashHandler';
 import { getVCardByIdDB } from '../../database';
 
 jest.mock('../../database', () => ({

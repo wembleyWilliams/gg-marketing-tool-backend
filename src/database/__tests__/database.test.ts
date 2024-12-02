@@ -1,5 +1,5 @@
 import * as db from '../index';
-import {BusinessData, VCardData} from "../../models/types";
+import {BusinessData, VCardData} from "../../common/types";
 import {ObjectId} from "mongodb";
 import {aggregateDataDB} from "../index";
 

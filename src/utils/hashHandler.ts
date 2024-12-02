@@ -1,6 +1,9 @@
+import {nanoid, customAlphabet} from "nanoid";
+import { nolookalikesSafe } from 'nanoid-dictionary';
+require('dotenv').config();
 import crypto from 'crypto';
 import logger from "../logger/logger";
-require('dotenv').config();
+
 const hashLogger = logger.child({context:'hashService'})
 const secretKey = crypto.createHash('sha256').update(process.env.URL_SHORTENER as string).digest();
 
@@ -15,7 +18,7 @@ const hashHandler = {
             // Combine iv and encrypted string to return
             return iv.toString('hex') + ':' + encrypted;
         } catch( error ) {
-            hashLogger.info('Data encryption unsuccessful!', {error: error})
+            hashLogger.error('Data encryption unsuccessful!', {error: error})
         }
 
     },
@@ -32,9 +35,16 @@ const hashHandler = {
             hashLogger.info('Data decryption successful!')
             return decrypted;
         } catch (error) {
-            hashLogger.info('Data decryption unsuccessful!', {error: error})
+            hashLogger.error('Data decryption unsuccessful!', {error: error})
         }
 
+    },
+
+    urlShortener: (hashedUrl: string) => {
+        const shortenedUrl = customAlphabet(nolookalikesSafe, 12)
+        // const base62 = Base62Str.createInstance();
+        // const randomBytes = crypto.randomBytes(6).toString('hex'); // Add entropy
+        // return base62.encodeStr(Buffer.from(hashedUrl+randomBytes).toString()); // Combine and encode
     }
 };
 

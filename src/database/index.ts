@@ -1,6 +1,6 @@
 import logger from '../logger/logger';
 import {ObjectId} from "mongodb";
-import {BusinessData, UserData, VCardData, Card} from "../models/types";
+import {BusinessData, UserData, VCardData, Card} from "../common/types";
 
 const dbLogger = logger.child({context: 'databaseService'})
 const MongoClient = require('mongodb').MongoClient;
@@ -902,16 +902,21 @@ export const listCardsDB = async () => {
  * @param {Object} mappingData - The data containing cardId and its corresponding hash.
  * @param {ObjectId} mappingData.cardId - The original MongoDB ID of the card.
  * @param {string} mappingData.hash - The generated hash for the card.
+ * @param {string} mappingData.shortenedHash - The shortened hash for the card.
  * @returns {Promise<any>} The result of the insert operation.
  */
-export const createHashMappingDB = async (mappingData: { cardId: string, hash: string }): Promise<any> => {
+export const createHashMappingDB = async (mappingData: {
+    cardId: string | undefined;
+    shortenedHash: (size?: number) => string;
+    hash: string
+}): Promise<any> => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     try {
         dbLogger.info("Connecting to Database");
         await client.connect();
         const db = client.db(dbname);
 
-        const result = await db.collection('cardHashMappings').insertOne(mappingData);
+        const result = await db.collection('cardHashMapping').insertOne(mappingData);
         dbLogger.info('Hash mapping created:', result);
         return result;
     } catch (error) {
@@ -935,7 +940,7 @@ export const getHashMappingByHashDB = async (hash: string): Promise<any> => {
         await client.connect();
         const db = client.db(dbname);
 
-        const mapping = await db.collection('cardHashMappings').findOne({hash});
+        const mapping = await db.collection('cardHashMapping').findOne({hash});
         dbLogger.info('Hash mapping found:', mapping);
         return mapping;
     } catch (error) {
@@ -960,7 +965,7 @@ export const updateHashMappingDB = async (cardId: string, updatedData: Partial<{
         await client.connect();
         const db = client.db(dbname);
 
-        const result = await db.collection('cardHashMappings').updateOne(
+        const result = await db.collection('cardHashMapping').updateOne(
             {cardId},
             {$set: updatedData}
         );
@@ -987,7 +992,7 @@ export const deleteHashMappingDB = async (cardId: string): Promise<any> => {
         await client.connect();
         const db = client.db(dbname);
 
-        const result = await db.collection('cardHashMappings').deleteOne({cardId});
+        const result = await db.collection('cardHashMapping').deleteOne({cardId});
         dbLogger.info('Hash mapping deleted:', result);
         return result;
     } catch (error) {
@@ -1010,7 +1015,7 @@ export const listHashMappingsDB = async (): Promise<any[]> => {
         await client.connect();
         const db = client.db(dbname);
 
-        const mappings = await db.collection('cardHashMappings').find().toArray();
+        const mappings = await db.collection('cardHashMapping').find().toArray();
         dbLogger.info('Hash mappings retrieved:', mappings);
         return mappings;
     } catch (error) {
@@ -1174,6 +1179,130 @@ export const listCardMetricsDB = async () => {
 };
 
 /**
+ * Retrieves a CardHashMapping by its ID from the MongoDB database.
+ * @param mappingId The ID of the CardHashMapping to be retrieved.
+ * @returns The CardHashMapping object if found, otherwise null.
+ */
+export const getCardHashMappingByIdDB = async (mappingId: string) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const cardHashMapping = await db.collection('cardHashMappings').findOne({ "_id": mappingId });
+        dbLogger.info('CardHashMapping found:', cardHashMapping);
+        return cardHashMapping;
+    } catch (error) {
+        dbLogger.error({ message: 'Error retrieving CardHashMapping', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Retrieves a CardHashMapping by its cardId from the MongoDB database.
+ * @param cardId The ID of the card associated with the CardHashMapping to be retrieved.
+ * @returns The CardHashMapping object if found, otherwise null.
+ */
+export const getCardHashMappingByCardIdDB = async (cardId: string) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const cardHashMapping = await db.collection('cardHashMappings').findOne({ "cardId": cardId });
+        dbLogger.info('CardHashMapping found:', cardHashMapping);
+        return cardHashMapping;
+    } catch (error) {
+        dbLogger.error({ message: 'Error retrieving CardHashMapping by cardId', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Updates a CardHashMapping in the MongoDB database by its ID.
+ * @param mappingId The ID of the CardHashMapping to be updated.
+ * @param updatedCardHashMapping The object containing the new data to be set.
+ * @returns The result of the update operation.
+ */
+export const updateCardHashMappingDB = async (mappingId: string, updatedCardHashMapping: Partial<any>) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const result = await db.collection('cardHashMappings').updateOne(
+            { "_id": mappingId },
+            { $set: updatedCardHashMapping },
+            { upsert: false }
+        );
+        dbLogger.info('CardHashMapping updated:', result);
+        return result;
+    } catch (error) {
+        dbLogger.error({ message: 'Error updating CardHashMapping', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Deletes a CardHashMapping from the MongoDB database by its ID.
+ * @param mappingId The ID of the CardHashMapping to be deleted.
+ * @returns The result of the delete operation.
+ */
+export const deleteCardHashMappingDB = async (mappingId: string) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const result = await db.collection('cardHashMappings').deleteOne({ "_id": mappingId });
+        dbLogger.info('CardHashMapping deleted:', result);
+        return result;
+    } catch (error) {
+        dbLogger.error({ message: 'Error deleting CardHashMapping', error });
+        return error;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Retrieves all CardHashMappings from the MongoDB database.
+ * @returns An array of CardHashMappings.
+ */
+export const listCardHashMappingsDB = async () => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const cardHashMappings = await db.collection('cardHashMappings').find().toArray();
+        dbLogger.info('CardHashMappings found:', cardHashMappings);
+        return cardHashMappings;
+    } catch (error) {
+        dbLogger.error({ message: 'Error listing CardHashMappings', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
  * Retrieves consolidated business data by aggregating across multiple collections.
  *
  * @param cardId The ID of the user whose data needs to be retrieved.
@@ -1250,7 +1379,7 @@ export const aggregateDataDB = async (cardId: string) => {
                 },
                 {
                     $lookup: {
-                        from: "cardHashMappings",
+                        from: "cardHashMapping",
                         localField: "_id",
                         foreignField: "cardId",
                         as: "hashMappingData"

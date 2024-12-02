@@ -13,11 +13,11 @@ import {
 } from "../../../database";
 
 import { aggregateCardData } from '../index'
-import hashID from "../../../utils/hashID";
+import hashID from "../../../utils/hashHandler";
 
 // import hashID from "../../../utils/hashID";  // Import the function to be tested
 // import * as hashID from '';                // Assuming hashID is a separate module
-jest.mock("../../../utils/hashID", () => ({
+jest.mock("../../../utils/hashHandler", () => ({
     decrypt: jest.fn(),
     encrypt: jest.fn()
 }));

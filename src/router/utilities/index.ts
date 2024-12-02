@@ -1,7 +1,7 @@
 import {Request, Response} from 'express';
 import generateContactCard from "../../utils/generateContactCard";
 import logger from '../../logger/logger';
-import {VCardData} from "../../models/types";
+import {VCardData} from "../../common/types";
 import { createVCardDB, deleteVCardDB, updateVCardDB} from "../../database";
 
 const utilityLogger = logger.child({context:'utilityService'})

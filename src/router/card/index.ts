@@ -8,8 +8,11 @@ import {
     getCardByIdDB,
     updateCardDB
 } from "../../database";
-import hashID from "../../utils/hashID";
-import {Tap} from "../../models/types";
+import hashID from "../../utils/hashHandler";
+import {Tap} from "../../common/types";
+import hashHandler from "../../utils/hashHandler";
+import {customAlphabet} from "nanoid";
+import {nolookalikesSafe} from "nanoid-dictionary";
 
 const cardsLogger = logger.child({ context: 'cardsService' });
 
@@ -36,8 +39,10 @@ export const createCard = async (req: Request, res: Response): Promise<Response 
         if (response) {
             const cardId = response?.insertedId.toString();
 
-            const hashedId: string = hashID.encrypt(cardId) as string
-            await createHashMappingDB({cardId: cardId, hash: hashedId })
+            const hashedId: string = hashHandler.encrypt(cardId) as string
+            const shortenedUrl = customAlphabet(nolookalikesSafe, 12)
+            //TODO: SHORTEN URL HERE
+            await createHashMappingDB({cardId: cardId, hash: hashedId, shortenedHash: shortenedUrl })
             res.status(200).send({
                 message: `Success! Card created: Card created successfully`,
                 hashedId: hashedId
