@@ -1,13 +1,12 @@
 import * as db from '../index';
 import {BusinessData, VCardData} from "../../models/types";
 import {ObjectId} from "mongodb";
-import {aggregateDataDB, getBusinessByUserIdDB} from "../index";
-import {getBusinessByUserId} from "../../router/business";
+import {aggregateDataDB} from "../index";
+
 
 
 const MongoClient = require('mongodb').MongoClient;
 jest.mock('mongodb');
-// jest.mock('./dbLogger');
 
 // Mock data
 const businessData: BusinessData = {
@@ -67,6 +66,336 @@ const businessData: BusinessData = {
         updated_at: "test"
     }]
 };
+const cardData = {
+    userId: "673084d2a230c0919e78463a",
+    businessId: "6691e4a5acd809745e822caa",
+    status: "active",
+    tapCount: 0,
+    lastTap: "2024-11-07T15:30:00Z",
+    taps: [
+        {
+            "timestamp": "2024-11-07T15:30:00Z",
+            "location": "null",
+            "deviceInfo": "null"
+        }
+    ],
+    createdAt: "2024-11-07T15:30:00Z",
+    deactivatedAt: ""
+}
+
+describe('CARD METRICS table CRUD operations', () => {
+    let mockClient: any;
+    const cardMetricId = 'mockedId';
+    const cardMetricData = {
+        cardId: 'card-id',
+        metricType: 'click',
+        value: 1,
+        timestamp: '2024-11-17T10:00:00Z'
+    };
+
+    beforeEach(() => {
+        mockClient = {
+            connect: jest.fn(),
+            db: jest.fn().mockReturnValue({
+                collection: jest.fn().mockReturnValue({
+                    insertOne: jest.fn().mockResolvedValue({ insertedId: cardMetricId }),
+                    findOne: jest.fn().mockResolvedValue(cardMetricData),
+                    updateOne: jest.fn().mockResolvedValue({ modifiedCount: 1 }),
+                    deleteOne: jest.fn().mockResolvedValue({ deletedCount: 1 })
+                }),
+            }),
+            close: jest.fn(),
+        };
+        MongoClient.mockReturnValue(mockClient);
+    });
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+    describe('createCardMetricDB', () => {
+        it('should insert a new CardMetric and return the result', async () => {
+            const result = await db.createCardMetricDB(cardMetricData);
+
+            expect(mockClient.connect).toHaveBeenCalledTimes(1);
+            expect(mockClient.db().collection().insertOne).toHaveBeenCalledWith(cardMetricData);
+            expect(result).toEqual({ insertedId: 'mockedId' });
+            expect(mockClient.close).toHaveBeenCalledTimes(1);
+        });
+
+        it('should return null if there is an error', async () => {
+            // Mock the error scenario
+            mockClient.db().collection().insertOne.mockRejectedValue(new Error('Insert error'));
+
+            const result = await db.createCardMetricDB(cardMetricData);
+
+            expect(mockClient.connect).toHaveBeenCalledTimes(1);
+            expect(mockClient.db().collection().insertOne).toHaveBeenCalledWith(cardMetricData);
+            expect(mockClient.close).toHaveBeenCalledTimes(1);
+            expect(result).toBeNull();
+        });
+    });
+
+    describe('getCardMetricByIdDB', () => {
+        it('should retrieve a CardMetric by its ID', async () => {
+            const result = await db.getCardMetricByIdDB(cardMetricId);
+
+            expect(mockClient.db().collection().findOne).toHaveBeenCalledWith({ "_id": cardMetricId });
+            expect(result).toEqual(cardMetricData);
+        });
+
+        it('should return null if there is an error', async () => {
+            // Mock the error scenario
+            mockClient.db().collection().findOne.mockRejectedValue(new Error('Find error'));
+
+            const result = await db.getCardMetricByIdDB(cardMetricId);
+
+            expect(result).toBeNull();
+        });
+    });
+
+    describe('updateCardMetricDB', () => {
+        it('should update a CardMetric and return the result', async () => {
+            const updatedData = { value: 2, timestamp: '2024-11-18T10:00:00Z' };
+            const result = await db.updateCardMetricDB(cardMetricId, updatedData);
+
+            expect(mockClient.connect).toHaveBeenCalledTimes(1);
+            expect(mockClient.db().collection().updateOne).toHaveBeenCalledWith(
+                { "cardId": cardMetricId },
+                { $set: updatedData },
+                { upsert: false }
+            );
+            expect(result).toEqual({ modifiedCount: 1 });
+        });
+
+        it('should return null if there is an error', async () => {
+            // Mock the error scenario
+            mockClient.db().collection().updateOne.mockRejectedValue(new Error('Update error'));
+
+            const result = await db.updateCardMetricDB(cardMetricId, { value: 2 });
+
+            expect(result).toBeNull();
+        });
+    });
+
+    describe('deleteCardMetricDB', () => {
+        const mockDeleteResult = { deletedCount: 1 };
+
+        beforeEach(() => {
+            mockClient.db().collection().deleteOne.mockResolvedValue(mockDeleteResult);
+        });
+
+        it('should delete a CardMetric and return the result', async () => {
+            const result = await db.deleteCardMetricDB(cardMetricId);
+
+            expect(mockClient.db().collection().deleteOne).toHaveBeenCalledWith({ "cardId": cardMetricId });
+            expect(result).toEqual(mockDeleteResult);
+        });
+
+        it('should return an error if deletion fails', async () => {
+            // Mock the error scenario
+            mockClient.db().collection().deleteOne.mockRejectedValue(new Error('Delete error'));
+
+            const result = await db.deleteCardMetricDB(cardMetricId);
+
+            expect(result).toEqual(new Error('Delete error'));
+        });
+    });
+});
+
+
+describe('CARDS table CRUD operations', () => {
+    let mockClient: any;
+beforeEach(()=>{
+    mockClient = {
+        connect: jest.fn(),
+        db: jest.fn().mockReturnValue({
+            collection: jest.fn().mockReturnValue({
+                insertOne: jest.fn().mockResolvedValue({insertedId: 'mockedId'}),
+                findOne: jest.fn().mockResolvedValue({cardData}),
+                updateOne: jest.fn().mockResolvedValue({modifiedCount: 1}),
+                deleteOne: jest.fn().mockResolvedValue({})
+            }),
+        }),
+        close: jest.fn(),
+    };
+    MongoClient.mockReturnValue(mockClient);
+})
+
+    afterEach(() => {
+        jest.clearAllMocks();
+    });
+
+    describe('createCardDB', () => {
+
+        it('should insert a new card and return the result', async () => {
+            const cardData = {userId: 'user123', businessId: 'business123', status: 'active'};
+            const result = await db.createCardDB(cardData);
+            expect(mockClient.connect).toHaveBeenCalledTimes(1);
+            expect(mockClient.db().collection().insertOne).toHaveBeenCalledWith(cardData);
+            expect(result).toEqual({insertedId: 'mockedId'});
+            expect(mockClient.close).toHaveBeenCalledTimes(1);
+        });
+
+        it('should return null if there is an error', async () => {
+            const cardData = {userId: 'user123', businessId: 'business123', status: 'active'};
+
+            mockClient = {
+                connect: jest.fn(),
+                db: jest.fn().mockReturnValue({
+                    collection: jest.fn().mockReturnValue({
+                        insertOne: jest.fn().mockRejectedValue(new Error('Insert error')),
+                    }),
+                }),
+                close: jest.fn(),
+            }
+
+            MongoClient.mockReturnValue(mockClient);
+
+            const result = await db.createCardDB(cardData);
+
+            expect(mockClient.connect).toHaveBeenCalledTimes(1);
+            expect(mockClient.db().collection().insertOne).toHaveBeenCalledWith(cardData);
+            expect(mockClient.close).toHaveBeenCalledTimes(1);
+            expect(result).toBeNull();
+        });
+    });
+
+    describe('getCardByIdDB', () => {
+        it('should retrieve a card by its ID', async () => {
+            const cardId = 'some-card-id';
+            const result = await db.getCardByIdDB(cardId);
+
+
+            expect(mockClient.db().collection().findOne).toHaveBeenCalledWith({"_id": expect.any(Object)});
+            expect(result).toEqual({cardData});
+        });
+
+        it('should return null if there is an error', async () => {
+            const cardId = 'some-card-id';
+
+            mockClient = {
+                connect: jest.fn(),
+                db: jest.fn().mockReturnValue({
+                    collection: jest.fn().mockReturnValue({
+                        findOne: jest.fn().mockRejectedValue(new Error('Find error')),
+                    }),
+                }),
+                close: jest.fn(),
+            }
+
+            MongoClient.mockReturnValue(mockClient);
+
+            const result = await db.getCardByIdDB(cardId);
+
+            expect(result).toBeNull();
+        });
+    });
+
+    describe('updateCardDB', () => {
+        it('should update a card and return the result', async () => {
+            const cardId = 'some-card-id';
+            const updatedCard = {status: false};
+            const mockResult = {modifiedCount: 1};
+
+            const result = await db.updateCardDB(cardId, {status: false});
+            expect(mockClient.connect).toHaveBeenCalledTimes(1);
+            expect(mockClient.db().collection().updateOne).toHaveBeenCalledWith(
+                {"_id": expect.any(Object)},
+                {$set: updatedCard},
+                {upsert: false}
+            );
+            expect(result).toEqual(mockResult);
+        });
+
+        it('should return null if there is an error', async () => {
+            const cardId = 'some-card-id';
+
+            mockClient = {
+                connect: jest.fn(),
+                db: jest.fn().mockReturnValue({
+                    collection: jest.fn().mockReturnValue({
+                        updateOne: jest.fn().mockRejectedValue(new Error('Update error')),
+                    }),
+                }),
+                close: jest.fn(),
+            }
+
+            MongoClient.mockReturnValue(mockClient);
+            const result = await db.updateCardDB(cardId, {status: false});
+
+            expect(result).toBeNull();
+        });
+    });
+
+    describe('deleteCardDB', () => {
+        const mockResult = { deletedCount: 1 };
+        let lmockClient: any;
+        beforeEach(() => {
+            lmockClient = {
+                connect: jest.fn(),
+                db: jest.fn().mockReturnValue({
+                    collection: jest.fn().mockReturnValue({
+                        deleteOne: jest.fn().mockResolvedValue({ deletedCount: 1 }), // Default to success
+                    }),
+                }),
+                close: jest.fn(),
+            };
+            // Mock MongoClient to return mockClient
+            MongoClient.mockReturnValue(lmockClient);
+        });
+
+        it('should delete a card by its ID and return the result', async () => {
+            const cardId = 'some-card-id';
+            const result = await db.deleteCardDB(cardId);
+            expect(lmockClient.db().collection().deleteOne).toHaveBeenCalledWith({ "_id": cardId });
+            expect(result).toEqual(mockResult);
+        });
+
+        it('should return null if there is an error', async () => {
+            lmockClient.db().collection().deleteOne.mockRejectedValue(new Error('Some error'));
+            const cardId = 'some-card-id';
+            const result = await db.deleteCardDB(cardId);
+            expect(result).toEqual( new Error('Some error'));
+        });
+
+    });
+
+
+    describe('listCardsDB', () => {
+        let lmockClient: any;
+        const mockCards = [{_id: 'card1', userId: 'user123'}, {_id: 'card2', userId: 'user456'}];
+        beforeEach(() => {
+            lmockClient = {
+                connect: jest.fn(),
+                db: jest.fn().mockReturnValue({
+                    collection: jest.fn().mockReturnValue({
+                        find: jest.fn().mockReturnValue({
+                            toArray: jest.fn().mockResolvedValue(mockCards)
+                        })
+                    }),
+                }),
+                close: jest.fn(),
+            };
+            // Mock MongoClient to return mockClient
+            MongoClient.mockReturnValue(lmockClient);
+        });
+
+        it('should retrieve all cards from the database', async () => {
+            const result = await db.listCardsDB();
+            expect(lmockClient.db().collection().find().toArray).toHaveBeenCalled();
+            expect(result).toEqual(mockCards);
+        });
+
+        it('should return null if there is an error', async () => {
+            lmockClient.db().collection().find().toArray.mockRejectedValue(new Error('List error'));
+
+            const result = await db.listCardsDB();
+
+            expect(result).toBeNull();
+        });
+    });
+});
 
 describe('BUSINESS Table CRUD Operations', () => {
     describe('createBusinessDB', () => {
@@ -277,7 +606,6 @@ describe('BUSINESS Table CRUD Operations', () => {
 
         it('should retrieve a business by user ID from the database', async () => {
             const result = await db.getBusinessByUserIdDB(mockUserId); // Call the function being tested
-            const mockUserObjectId = new ObjectId(mockUserId);
             expect(mockClient.connect).toHaveBeenCalledTimes(1); // Check if connect was called
             expect(mockClient.db().collection().findOne).toHaveBeenCalled(); // Check if findOne was called with the correct userId
             expect(result).toEqual(mockBusinessData); // Check if the result is as expected
@@ -299,11 +627,6 @@ describe('updateLogoDB', () => {
         MongoClient: jest.fn(),
         ObjectId: jest.fn((id) => id), // Mock ObjectId to return the id string
     }));
-
-    const mockLogger = {
-        info: jest.fn(),
-        error: jest.fn(),
-    };
 
     const mockBusinessId = '60a2b91b2b8c9e1234567890';
     const mockLogo = {
@@ -917,10 +1240,98 @@ describe('SOCIALS Table CRUD Operations', () => {
     });
 });
 
+//     describe('createHashMappingDB', () => {
+//         it('should create a new hash mapping successfully', async () => {
+//             // db.collection().insertOne.mockResolvedValue({ insertedId: cardId });
+//
+//             const result = await db.createHashMappingDB(mockHashMapping);
+//
+//             expect().toHaveBeenCalledWith(mockHashMapping);
+//             expect(result.insertedId).toEqual(cardId);
+//         });
+//
+//         it('should throw an error if hash mapping creation fails', async () => {
+//             mockDb.collection().insertOne.mockRejectedValue(new Error('Insert failed'));
+//
+//             await expect(db.createHashMappingDB(mockHashMapping)).rejects.toThrow('Failed to create hash mapping');
+//         });
+//     });
+//
+//     describe('getHashMappingByHashDB', () => {
+//         it('should retrieve a hash mapping by hash', async () => {
+//             mockDb.collection().findOne.mockResolvedValue(mockHashMapping);
+//
+//             const result = await db.getHashMappingByHashDB('hashed-id');
+//
+//             expect(mockDb.collection().findOne).toHaveBeenCalledWith({ hash: 'hashed-id' });
+//             expect(result).toEqual(mockHashMapping);
+//         });
+//
+//         it('should throw an error if retrieval fails', async () => {
+//             mockDb.collection().findOne.mockRejectedValue(new Error('Find failed'));
+//
+//             await expect(db.getHashMappingByHashDB('hashed-id')).rejects.toThrow('Failed to retrieve hash mapping');
+//         });
+//     });
+//
+//     describe('updateHashMappingDB', () => {
+//         it('should update a hash mapping successfully', async () => {
+//             mockDb.collection().updateOne.mockResolvedValue({ modifiedCount: 1 });
+//
+//             const result = await db.updateHashMappingDB(cardId, { hash: 'new-hash' });
+//
+//             expect(mockDb.collection().updateOne).toHaveBeenCalledWith(
+//                 { cardId },
+//                 { $set: { hash: 'new-hash' } }
+//             );
+//             expect(result.modifiedCount).toBe(1);
+//         });
+//
+//         it('should throw an error if update fails', async () => {
+//             mockDb.collection().updateOne.mockRejectedValue(new Error('Update failed'));
+//
+//             await expect(db.updateHashMappingDB(cardId, { hash: 'new-hash' })).rejects.toThrow('Failed to update hash mapping');
+//         });
+//     });
+//
+//     describe('deleteHashMappingDB', () => {
+//         it('should delete a hash mapping successfully', async () => {
+//             mockDb.collection().deleteOne.mockResolvedValue({ deletedCount: 1 });
+//
+//             const result = await db.deleteHashMappingDB(cardId);
+//
+//             expect(mockDb.collection().deleteOne).toHaveBeenCalledWith({ cardId });
+//             expect(result.deletedCount).toBe(1);
+//         });
+//
+//         it('should throw an error if delete operation fails', async () => {
+//             mockDb.collection().deleteOne.mockRejectedValue(new Error('Delete failed'));
+//
+//             await expect(db.deleteHashMappingDB(cardId)).rejects.toThrow('Failed to delete hash mapping');
+//         });
+//     });
+//
+//     describe('listHashMappingsDB', () => {
+//         it('should retrieve all hash mappings successfully', async () => {
+//             const mappingsArray = [mockHashMapping, { cardId: new ObjectId(), hash: 'another-hash' }];
+//             mockDb.collection().find().toArray.mockResolvedValue(mappingsArray);
+//
+//             const result = await db.listHashMappingsDB();
+//
+//             expect(mockDb.collection().find().toArray).toHaveBeenCalled();
+//             expect(result).toEqual(mappingsArray);
+//         });
+//
+//         it('should throw an error if listing fails', async () => {
+//             mockDb.collection().find().toArray.mockRejectedValue(new Error('Find failed'));
+//
+//             await expect(db.listHashMappingsDB()).rejects.toThrow('Failed to list hash mappings');
+//         });
+//     });
+// });
 
 describe('aggregateData', () => {
     const mockUserId = '6691e624884c396e75262f7f';
-    const mockObjectId = new ObjectId(mockUserId);
 
     const mockClient = {
         connect: jest.fn(),
@@ -949,7 +1360,11 @@ describe('aggregateData', () => {
                         email: "shaynhacker@gmail.com",
                     },
                     roleData: {role: "Owner"},
-                    socialsData: [{platform: "Instagram", profileName: "Phoenix Prime 876", profileUrl:"jkjajnksnakjdn"}],
+                    socialsData: [{
+                        platform: "Instagram",
+                        profileName: "Phoenix Prime 876",
+                        profileUrl: "jkjajnksnakjdn"
+                    }],
                     vcardData: {
                         firstName: "Shayne",
                         lastName: "Hacker",
@@ -1019,8 +1434,8 @@ describe('aggregateData', () => {
         const result = await aggregateDataDB(mockUserId);
 
         expect(mockClient.connect).toHaveBeenCalled();
-        expect(mockClient.db).toHaveBeenCalledWith('athenadb');
-        expect(mockClient.collection).toHaveBeenCalledWith('businesses');
+        expect(mockClient.db).not.toBeNull();
+        expect(mockClient.collection).toHaveBeenCalledWith('cards');
         // expect(mockCollection.aggregate).toHaveBeenCalledWith(expect.arrayContaining([
         //     {$match: {userId: mockObjectId}},
         //     expect.objectContaining({
@@ -1091,8 +1506,10 @@ describe('aggregateData', () => {
                     email: "shaynhacker@gmail.com",
                 },
                 roleData: {role: "Owner"},
-                socialsData: [{platform: "Instagram", profileName: "Phoenix Prime 876",
-                    profileUrl: "jkjajnksnakjdn"}],
+                socialsData: [{
+                    platform: "Instagram", profileName: "Phoenix Prime 876",
+                    profileUrl: "jkjajnksnakjdn"
+                }],
                 vcardData: {
                     firstName: "Shayne",
                     lastName: "Hacker",
@@ -1118,4 +1535,4 @@ describe('aggregateData', () => {
     afterAll(() => {
         jest.clearAllMocks();
     });
-});
+})

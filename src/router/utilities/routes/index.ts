@@ -1,105 +1,15 @@
-import {Request, Response} from 'express';
-import generateContactCard from "../../../utils/generateContactCard";
-import logger from '../../../logger/logger';
-import {VCardData} from "../../../models/types";
-import {aggregateDataDB, createVCardDB, deleteVCardDB, updateVCardDB} from "../../../database";
+import {createVCard, deleteVCard, getVCard, updateVCard} from "../index";
 
-const utilityLogger = logger.child({context:'utilityService'})
+const express = require('express')
+const utility = express.Router()
 
-export const createVCard = async (req: Request, res: Response) => {
-    let vCardData: VCardData = req.body
-        try {
-            let response = await createVCardDB(vCardData)
-            res.status(200).send(`Success!! VCard created: ${response}`);
-            return res
-        } catch (err: any){
-            utilityLogger.error('Error inserting card information', { error: err });
-            res.status(500).send({ message: 'Error inserting card information', error: err });
-        }
-}
+utility.delete('/contact-card/delete', deleteVCard)
 
-export const getVCard = async (req: Request, res: Response) => {
-    let ownerId = req.body.ownerId
+utility.post('/contact-card/create', createVCard)
 
-    if(ownerId){
-        //set content-type and disposition including desired filename
-        res.set('Content-Type', `text/vcard; name="${req.body.ownerId}.vcf"`);
-        res.set('Content-Disposition', `inline; filename="${req.body.ownerId}.vcf"`);
+utility.put('/contact-card/update', updateVCard)
 
-        let vCard = await generateContactCard(ownerId)
-            .then((res)=>{
-                return res
-            })
-            .catch((err: any) => {
-                utilityLogger.error('Error retrieving card information', { error: err });
-                res.status(500).send({ message: 'Error retrieving card information', error: err });
-            })
-        //send the response
-        res.status(200).send(vCard);
-    } else {
-        utilityLogger.error('Error retrieving card information');
-        res.status(500).send({message: 'Unable to find Id'})
-    }
-}
+utility.post('/contact-card', getVCard)
 
-export const updateVCard = async (req: Request, res: Response) => {
-    let ownerId = req.body.ownerId
-    let cardToBeUpdated = req.body
 
-    if(ownerId) {
-        let updatedVCard = await updateVCardDB(ownerId, cardToBeUpdated)
-            .then((res)=> {
-                return res
-            })
-            .catch((err: any) => {
-                utilityLogger.error('Error retrieving card information', { error: err });
-                res.status(500).send({ message: 'Error retrieving card information', error: err });
-            })
-
-        res.status(200).send(updatedVCard)
-    } else {
-        utilityLogger.error('Error retrieving card information');
-        res.status(500).send({message: 'Unable to find Id'})
-    }
-
-}
-
-export const deleteVCard = async (req: Request, res: Response) => {
-    let ownerId = req.body.ownerId
-    if(ownerId) {
-        let deletedVCard = await deleteVCardDB(ownerId)
-            .then((res)=> {
-
-                return res
-            })
-            .catch((err: any) => {
-                utilityLogger.error('Error retrieving card information', { error: err });
-                res.status(500).send({ message: 'Error retrieving card information', error: err });
-            })
-
-        res.status(200).send(deletedVCard)
-    } else {
-        utilityLogger.error('Error retrieving card information');
-        res.status(500).send({message: 'Unable to find Id'})
-    }
-}
-
-export const aggregateData = async (req: Request, res: Response) => {
-    let userId = req.params.userId;
-
-    if (userId) {
-        let aggregatedData = await aggregateDataDB(userId)
-            .then((result) => {
-                return result;
-            })
-            .catch((err: any) => {
-                utilityLogger.error('Error aggregating data', { error: err });
-                res.status(500).send({ message: 'Error aggregating data', error: err });
-            });
-
-        res.status(200).send(aggregatedData);
-    } else {
-        utilityLogger.error('Error aggregating data: user ID not provided');
-        res.status(400).send({ message: 'Unable to find user ID' });
-    }
-};
+export default utility;

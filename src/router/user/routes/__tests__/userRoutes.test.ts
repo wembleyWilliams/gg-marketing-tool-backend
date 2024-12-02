@@ -24,7 +24,6 @@ const app = express();
 app.use(express.json());
 app.use('/user', user); // Adjust the path to the actual user routes file
 
-// Test cases for the user route handlers
 
 describe('User Routes', () => {
 

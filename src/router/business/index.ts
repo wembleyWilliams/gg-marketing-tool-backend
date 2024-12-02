@@ -6,6 +6,7 @@ import {
     updateSocialHandlesDB
 } from "../../database";
 import logger from '../../logger/logger';
+import hashHandler from "../../utils/hashID";
 
 // Logging
 const businessLogger = logger.child({ context: 'businessService' });

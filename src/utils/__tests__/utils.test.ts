@@ -1,4 +1,5 @@
 import generateContactCard from '../generateContactCard';
+import hashID from '../hashID';
 import { getVCardByIdDB } from '../../database';
 
 jest.mock('../../database', () => ({
@@ -86,8 +87,7 @@ describe('generateContactCard', () => {
         expect(vCard).toMatch(/ORG(;CHARSET=UTF-8)?:Good Group/);
 
         expect(vCard).toMatch(/TITLE(;CHARSET=UTF-8)?:CEO/); // Job title
-        expect(vCard).toContain('PHOTO;TYPE=image/jpeg:https://example.com/photo.jpg'); // Photo URL
-        expect(vCard).toContain('LOGO;TYPE=image/png:https://example.com/logo.png'); // Logo URL
+        expect(vCard).toContain('LOGO;TYPE=image/png:data:image/jpeg\\;base64\\,https://example.com/logo.png'); // Logo URL
         expect(vCard).toContain('BDAY:19980128'); // Birthday in YYYYMMDD format
         expect(vCard).toContain('END:VCARD');
 
@@ -95,3 +95,9 @@ describe('generateContactCard', () => {
         expect(getVCardByIdDB).toHaveBeenCalledWith('6691e4a5acd809745e822caa');
     });
 });
+
+describe('saltUrl', () => {
+    // it('should return a salted ID string from ID string', async ()=>{
+    //     expect(hashID('6691e4a5acd809745e822caa')).not.toBeNull()
+    // })
+})

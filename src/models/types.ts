@@ -60,12 +60,28 @@ export interface Social {
     profileUrl: string;
 }
 
-interface SocialUrls {
-    facebook?: string;
-    linkedIn?: string;
-    twitter?: string;
-    flickr?: string;
+
+export interface CardMetrics {
+    cardId: string;          // Unique ID for the card
+    userId: string;          // User ID associated with this metric
+    businessId: string;      // Business ID linked to the metric
+    status: string;
+    tapCount: number;
+    lastTap: string;
 }
+
+export interface Card {
+    _id: string;             // Unique ID for the card (e.g., MongoDB ObjectId)
+    userId: string;          // User ID associated with the card
+    businessId: string;      // Business ID linked to the card
+    status: boolean;
+    tapCount: number;        // Counter for the number of taps
+    lastTap: Date | null;    // Timestamp for the last tap event
+    taps: Tap[] | undefined;
+    createdAt: Date;         // Timestamp when the card was created
+    deactivatedAt?: Date;    // Optional timestamp for deactivation
+}
+
 //
 // export interface BusinessData {
 //     industry: string;
@@ -242,3 +258,14 @@ export interface VCardData {
     version: string;
 }
 
+export interface Tap {
+    timestamp: string,
+    location: any,
+    deviceInfo?: string
+}
+
+export interface Location {
+    latitude: string,
+    longitude: string,
+    accuracy: string
+}
