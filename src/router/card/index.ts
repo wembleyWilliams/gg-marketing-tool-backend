@@ -1,21 +1,19 @@
-import { Request, Response } from 'express';
+import {Request, Response} from 'express';
 import logger from '../../logger/logger';
 import {
     aggregateDataDB,
     createCardDB,
     createHashMappingDB,
     deleteCardDB,
-    getCardByIdDB,
+    getCardByIdDB, getCardHashMappingByIdDB,
     updateCardDB
 } from "../../database";
-import hashID from "../../utils/hashHandler";
 import {Tap} from "../../common/types";
-import hashHandler from "../../utils/hashHandler";
-import {customAlphabet} from "nanoid";
-import {nolookalikesSafe} from "nanoid-dictionary";
+import {customAlphabet, nanoid} from "nanoid";
+import {nolookalikes, nolookalikesSafe} from "nanoid-dictionary";
+import hashHandler from "../../utils/cardHashMapping";
 
-const cardsLogger = logger.child({ context: 'cardsService' });
-
+const cardsLogger = logger.child({context: 'cardsService'});
 /**
  * Creates a new card in the database.
  *
@@ -35,26 +33,27 @@ const cardsLogger = logger.child({ context: 'cardsService' });
 export const createCard = async (req: Request, res: Response): Promise<Response | void> => {
     const cardData = req.body;
     try {
+        const generateId = customAlphabet(nolookalikes, 12)
+        const identifier = generateId();
+
         const response = await createCardDB(cardData);
         if (response) {
             const cardId = response?.insertedId.toString();
-
-            const hashedId: string = hashHandler.encrypt(cardId) as string
-            const shortenedUrl = customAlphabet(nolookalikesSafe, 12)
-            //TODO: SHORTEN URL HERE
-            await createHashMappingDB({cardId: cardId, hash: hashedId, shortenedHash: shortenedUrl })
+            const hashedId = await hashHandler.createSHA256Hash(cardId)
+            await createHashMappingDB({cardId: cardId, hash: hashedId, identifier: identifier })
             res.status(200).send({
                 message: `Success! Card created: Card created successfully`,
-                hashedId: hashedId
+                hashedId: hashedId,
+                identifier: identifier
             });
             return res;
         } else {
             cardsLogger.error('Error card creation unsuccessful');
-            res.status(500).send({ message: 'Error card creation unsuccessful'});
+            res.status(500).send({message: 'Error card creation unsuccessful'});
         }
     } catch (err: any) {
-        cardsLogger.error('Error inserting card information', { error: err });
-        res.status(500).send({ message: 'Error inserting card information', error: err });
+        cardsLogger.error('Error inserting card information', {error: err});
+        res.status(500).send({message: 'Error inserting card information', error: err});
     }
 };
 
@@ -72,26 +71,26 @@ export const createCard = async (req: Request, res: Response): Promise<Response 
  * // }
  */
 export const getCard = async (req: Request, res: Response): Promise<void> => {
-    const cardId = req.params.cardId;
+    const identifier = req.params.identifier;
 
-    if (cardId) {
-        const decryptedId = hashID.decrypt(cardId)
+    if (identifier) {
+        const cardFromHashTable = await getCardHashMappingByIdDB(identifier)
         // @ts-ignore
-        const card = await getCardByIdDB(decryptedId)
+        const card = await getCardByIdDB(cardFromHashTable?._id)
             .then((result) => {
                 if (!result) {
                     cardsLogger.error('Card not found');
-                    res.status(400).send({ message: 'Unable to find card' });
+                    res.status(400).send({message: 'Unable to find card'});
                 } else return result;
             })
             .catch((err: any) => {
-                cardsLogger.error('Error retrieving card information', { error: err });
-                res.status(500).send({ message: 'Error retrieving card information', error: err });
+                cardsLogger.error('Error retrieving card information', {error: err});
+                res.status(500).send({message: 'Error retrieving card information', error: err});
             });
         res.status(200).send(card);
     } else {
         cardsLogger.error('Error retrieving card information: card ID not provided');
-        res.status(400).send({ message: 'Unable to find card ID' });
+        res.status(400).send({message: 'Unable to find card ID'});
     }
 };
 
@@ -123,17 +122,17 @@ export const updateCard = async (req: Request, res: Response): Promise<void> => 
             const updatedCard = await updateCardDB(cardId, updatedCardData);
             if (!updatedCard) {
                 cardsLogger.error('Card not found');
-                res.status(400).send({ message: 'Unable to find card' });
+                res.status(400).send({message: 'Unable to find card'});
             } else {
                 res.status(200).send(updatedCard);
             }
         } catch (err) {
-            cardsLogger.error('Error updating card information', { error: err });
-            res.status(500).send({ message: 'Error updating card information', error: err });
+            cardsLogger.error('Error updating card information', {error: err});
+            res.status(500).send({message: 'Error updating card information', error: err});
         }
     } else {
         cardsLogger.error('Error updating card information: card ID not provided');
-        res.status(400).send({ message: 'Unable to find card ID' });
+        res.status(400).send({message: 'Unable to find card ID'});
     }
 };
 
@@ -158,17 +157,17 @@ export const deleteCard = async (req: Request, res: Response): Promise<void> => 
             const deletedCard = await deleteCardDB(cardId);
             if (!deletedCard) {
                 cardsLogger.error('Card not found');
-                res.status(400).send({ message: 'Unable to find card' });
+                res.status(400).send({message: 'Unable to find card'});
             } else {
                 res.status(200).send(deletedCard);
             }
         } catch (err) {
-            cardsLogger.error('Error deleting card', { error: err });
-            res.status(500).send({ message: 'Error deleting card', error: err });
+            cardsLogger.error('Error deleting card', {error: err});
+            res.status(500).send({message: 'Error deleting card', error: err});
         }
     } else {
         cardsLogger.error('Error deleting card: card ID not provided');
-        res.status(400).send({ message: 'Unable to find card ID' });
+        res.status(400).send({message: 'Unable to find card ID'});
     }
 };
 
@@ -176,10 +175,10 @@ export const incrementTap = async (req: Request, res: Response) => {
     const cardId = req.params.cardId;
     const info = req.body
     if (cardId) {
-        const decryptedId = hashID.decrypt(cardId) as string
 
-        const card = await getCardByIdDB(decryptedId);
-        if (card?.status){
+
+        const card = await getCardByIdDB(cardId);
+        if (card?.status) {
             let tapCount = card?.tapCount
             let taps = card?.taps
 
@@ -195,7 +194,7 @@ export const incrementTap = async (req: Request, res: Response) => {
             }
 
             try {
-                const updatedCard = await updateCardDB(decryptedId, updatedTapData);
+                const updatedCard = await updateCardDB(cardId, updatedTapData);
 
                 if (!updatedCard) {
                     cardsLogger.error('Card not found');
@@ -217,24 +216,23 @@ export const incrementTap = async (req: Request, res: Response) => {
 export const toggleCard = async (req: Request, res: Response) => {
     const cardId = req.params.cardId;
     if (cardId) {
-        const decryptedId = hashID.decrypt(cardId) as string
-        const card = await getCardByIdDB(decryptedId);
+        const card = await getCardByIdDB(cardId);
         let status = card?.status
-        let updatedStatus =  {status: !status}
+        let updatedStatus = {status: !status}
 
         try {
 
-            const updatedCard = await updateCardDB(decryptedId, updatedStatus);
+            const updatedCard = await updateCardDB(cardId, updatedStatus);
 
             if (!updatedCard) {
                 cardsLogger.error('Card not found');
-                res.status(400).send({ message: 'Unable to update card status' });
+                res.status(400).send({message: 'Unable to update card status'});
             } else {
-                res.status(200).send({message:`Card Toggled Successfully!`, cardId: cardId});
+                res.status(200).send({message: `Card Toggled Successfully!`, cardId: cardId});
             }
         } catch (err) {
-            cardsLogger.error('Error updating card status', { error: err });
-            res.status(500).send({ message: 'Error updating card status', error: err });
+            cardsLogger.error('Error updating card status', {error: err});
+            res.status(500).send({message: 'Error updating card status', error: err});
         }
     } else {
 
@@ -246,20 +244,19 @@ export const aggregateCardData = async (req: Request, res: Response) => {
     let cardId = req.params.cardId;
 
     if (cardId) {
-        const decryptedId = hashID.decrypt(cardId) as string
 
-        let aggregatedData = await aggregateDataDB(decryptedId)
+        let aggregatedData = await aggregateDataDB(cardId)
             .then((result) => {
                 return result;
             })
             .catch((err: any) => {
-                cardsLogger.error('Error aggregating data', { error: err });
-                res.status(500).send({ message: 'Error aggregating data', error: err });
+                cardsLogger.error('Error aggregating data', {error: err});
+                res.status(500).send({message: 'Error aggregating data', error: err});
             });
 
         res.status(200).send(aggregatedData);
     } else {
         cardsLogger.error('Error aggregating data: user ID not provided');
-        res.status(400).send({ message: 'Unable to find user ID' });
+        res.status(400).send({message: 'Unable to find user ID'});
     }
 };

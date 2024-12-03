@@ -11,7 +11,7 @@ card.delete('/delete/:cardId', deleteCard)
 
 card.put('/update/:cardId', updateCard)
 
-card.get('/:cardId', getCard)
+card.get('/:identifier', getCard)
 
 card.get('/info/:cardId', aggregateCardData)
 

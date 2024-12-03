@@ -789,7 +789,7 @@ export const createCardDB = async (cardData: any) => {
         const db = client.db(dbname);
 
         const result = await db.collection('cards').insertOne(cardData);
-        dbLogger.info('Card created:', result);
+        dbLogger.info('Card created successfully!', result);
         return result;
     } catch (error) {
         dbLogger.error({message: 'Error creating Card', error});
@@ -907,7 +907,7 @@ export const listCardsDB = async () => {
  */
 export const createHashMappingDB = async (mappingData: {
     cardId: string | undefined;
-    shortenedHash: (size?: number) => string;
+    identifier: string;
     hash: string
 }): Promise<any> => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -916,8 +916,8 @@ export const createHashMappingDB = async (mappingData: {
         await client.connect();
         const db = client.db(dbname);
 
-        const result = await db.collection('cardHashMapping').insertOne(mappingData);
-        dbLogger.info('Hash mapping created:', result);
+        const result = await db.collection('cardHashMappings').insertOne(mappingData);
+        dbLogger.info('Hash mapping created successfully', result);
         return result;
     } catch (error) {
         dbLogger.error({message: 'Error creating hash mapping', error});
@@ -1190,8 +1190,8 @@ export const getCardHashMappingByIdDB = async (mappingId: string) => {
         await client.connect();
         const db = client.db(dbname);
 
-        const cardHashMapping = await db.collection('cardHashMappings').findOne({ "_id": mappingId });
-        dbLogger.info('CardHashMapping found:', cardHashMapping);
+        const cardHashMapping = await db.collection('cardHashMappings').findOne({ "identifier": mappingId });
+        dbLogger.info('CardHashMapping found');
         return cardHashMapping;
     } catch (error) {
         dbLogger.error({ message: 'Error retrieving CardHashMapping', error });
@@ -1305,17 +1305,18 @@ export const listCardHashMappingsDB = async () => {
 /**
  * Retrieves consolidated business data by aggregating across multiple collections.
  *
- * @param cardId The ID of the user whose data needs to be retrieved.
+ * @param identifier The ID of the user whose data needs to be retrieved.
  * @returns A promise resolving to the consolidated data from businesses, users, roles, socials, and vcards collections.
  */
-export const aggregateDataDB = async (cardId: string) => {
+export const aggregateDataDB = async (identifier: string) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
     try {
         dbLogger.info("Connecting to Database");
         await client.connect();
         const db = client.db(dbname);
-
+        const cardFromHashTable = await getCardHashMappingByIdDB(identifier)
+        const cardId = cardFromHashTable?.cardId
         if (cardId) {
             dbLogger.info(`Aggregating data for card ID: ${cardId}`);
 
