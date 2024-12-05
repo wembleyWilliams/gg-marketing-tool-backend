@@ -19,14 +19,14 @@ export const createVCard = async (req: Request, res: Response) => {
 }
 
 export const getVCard = async (req: Request, res: Response) => {
-    let ownerId = req.body.ownerId
+    let businessId = req.body.businessId
 
-    if(ownerId){
+    if(businessId){
         //set content-type and disposition including desired filename
-        res.set('Content-Type', `text/vcard; name="${req.body.ownerId}.vcf"`);
-        res.set('Content-Disposition', `inline; filename="${req.body.ownerId}.vcf"`);
+        res.set('Content-Type', `text/vcard; name="${businessId}.vcf"`);
+        res.set('Content-Disposition', `inline; filename="${businessId}.vcf"`);
 
-        let vCard = await generateContactCard(ownerId)
+        let vCard = await generateContactCard(businessId)
             .then((res)=>{
                 return res
             })
