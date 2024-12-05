@@ -9,6 +9,7 @@ import passportService from './config/passport'
 import requestLogger from "./logger/requestLogger";
 import logger from "./logger/logger";
 import {healthDB} from "./database";
+import { version } from '../package.json';
 
 
 const passport = require("passport")
@@ -71,12 +72,11 @@ app.use('/metric',metric)
 
 app.get('/health' , async (req: any, res: any)=> {
     try {
-
         const healthReport: { dbConnection: string; status: string; uptime: number; timestamp: Date } = await healthDB();
         mainLogger.info(`Health check performed: ${JSON.stringify(healthReport)}`);
 
         if (healthReport.status === 'healthy') {
-            res.status(200).json(healthReport);
+            res.status(200).json(`Health check performed: ${JSON.stringify(healthReport)} | ${version}`);
         } else {
             res.status(503).json(healthReport);
         }
