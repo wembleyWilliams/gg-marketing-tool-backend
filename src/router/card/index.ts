@@ -9,8 +9,8 @@ import {
     updateCardDB
 } from "../../database";
 import {Tap} from "../../common/types";
-import {customAlphabet, nanoid} from "nanoid";
-import {nolookalikes, nolookalikesSafe} from "nanoid-dictionary";
+import {customAlphabet} from "nanoid";
+import {nolookalikes} from "nanoid-dictionary";
 import hashHandler from "../../utils/cardHashMapping";
 
 const cardsLogger = logger.child({context: 'cardsService'});
@@ -76,7 +76,7 @@ export const getCard = async (req: Request, res: Response): Promise<void> => {
     if (identifier) {
         const cardFromHashTable = await getCardHashMappingByIdDB(identifier)
         // @ts-ignore
-        const card = await getCardByIdDB(cardFromHashTable?._id)
+        const card = await getCardByIdDB(cardFromHashTable?.cardId)
             .then((result) => {
                 if (!result) {
                     cardsLogger.error('Card not found');
@@ -172,12 +172,11 @@ export const deleteCard = async (req: Request, res: Response): Promise<void> => 
 };
 
 export const incrementTap = async (req: Request, res: Response) => {
-    const cardId = req.params.cardId;
+    const identifier = req.params.identifier;
     const info = req.body
-    if (cardId) {
-
-
-        const card = await getCardByIdDB(cardId);
+    if (identifier) {
+        const cardFromHashTable = await getCardHashMappingByIdDB(identifier)
+        const card = await getCardByIdDB(cardFromHashTable?.cardId);
         if (card?.status) {
             let tapCount = card?.tapCount
             let taps = card?.taps
@@ -194,7 +193,7 @@ export const incrementTap = async (req: Request, res: Response) => {
             }
 
             try {
-                const updatedCard = await updateCardDB(cardId, updatedTapData);
+                const updatedCard = await updateCardDB(card._id, updatedTapData);
 
                 if (!updatedCard) {
                     cardsLogger.error('Card not found');
@@ -241,11 +240,11 @@ export const toggleCard = async (req: Request, res: Response) => {
 }
 
 export const aggregateCardData = async (req: Request, res: Response) => {
-    let cardId = req.params.cardId;
+    let identifier = req.params.identifier;
 
-    if (cardId) {
+    if (identifier) {
 
-        let aggregatedData = await aggregateDataDB(cardId)
+        let aggregatedData = await aggregateDataDB(identifier)
             .then((result) => {
                 return result;
             })

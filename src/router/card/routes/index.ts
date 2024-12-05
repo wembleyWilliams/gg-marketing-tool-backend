@@ -13,10 +13,10 @@ card.put('/update/:cardId', updateCard)
 
 card.get('/:identifier', getCard)
 
-card.get('/info/:cardId', aggregateCardData)
+card.get('/info/:identifier', aggregateCardData)
 
 
-card.put('/incrementTap/:cardId',(req: any, res: any, next: any) => {
+card.put('/incrementTap/:identifier',(req: any, res: any, next: any) => {
     const {incrementTap} = require('../index');
     return incrementTap(req, res, next)
 })
