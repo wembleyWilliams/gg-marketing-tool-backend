@@ -9,7 +9,7 @@ import passportService from './config/passport'
 import requestLogger from "./logger/requestLogger";
 import logger from "./logger/logger";
 import {healthDB} from "./database";
-import { version } from '../package.json';
+// import { version } from '../package.json';
 
 
 const passport = require("passport")
@@ -76,7 +76,8 @@ app.get('/health' , async (req: any, res: any)=> {
         mainLogger.info(`Health check performed: ${JSON.stringify(healthReport)}`);
 
         if (healthReport.status === 'healthy') {
-            res.status(200).json(`Health check performed: ${JSON.stringify(healthReport)} | ${version}`);
+            res.status(200).json(`Health check performed: ${JSON.stringify(healthReport)}`);
+        // | ${version}
         } else {
             res.status(503).json(healthReport);
         }
