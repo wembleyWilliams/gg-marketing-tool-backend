@@ -26,7 +26,7 @@ export const getVCard = async (req: Request, res: Response) => {
         res.set('Content-Type', `text/vcard; name="${businessId}.vcf"`);
         res.set('Content-Disposition', `inline; filename="${businessId}.vcf"`);
         let decryptedId = await getCardHashMappingByIdDB(businessId)
-        console.log(decryptedId)
+        utilityLogger.info(`Generating vcard for ${decryptedId}`)
         let vCard = await generateContactCard(decryptedId?.cardId)
             .then((res)=>{
                 return res
