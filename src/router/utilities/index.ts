@@ -31,8 +31,8 @@ export const getVCard = async (req: Request, res: Response) => {
                 return res
             })
             .catch((err: any) => {
-                utilityLogger.error('Error retrieving card information', { error: err });
-                res.status(500).send({ message: 'Error retrieving card information', error: err });
+                utilityLogger.error('Error while generating card', { error: err });
+                res.status(500).send({ message: 'Error while generating card', error: err });
             })
         //send the response
         res.status(200).send(vCard);
