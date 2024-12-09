@@ -2,7 +2,8 @@ import {Request, Response} from 'express';
 import generateContactCard from "../../utils/generateContactCard";
 import logger from '../../logger/logger';
 import {VCardData} from "../../common/types";
-import { createVCardDB, deleteVCardDB, updateVCardDB} from "../../database";
+import {createVCardDB, deleteVCardDB, getCardHashMappingByIdDB, updateVCardDB} from "../../database";
+import * as util from "util";
 
 const utilityLogger = logger.child({context:'utilityService'})
 
@@ -20,19 +21,19 @@ export const createVCard = async (req: Request, res: Response) => {
 
 export const getVCard = async (req: Request, res: Response) => {
     let businessId = req.body.businessId
-
     if(businessId){
         //set content-type and disposition including desired filename
         res.set('Content-Type', `text/vcard; name="${businessId}.vcf"`);
         res.set('Content-Disposition', `inline; filename="${businessId}.vcf"`);
-
-        let vCard = await generateContactCard(businessId)
+        let decryptedId = await getCardHashMappingByIdDB(businessId)
+        utilityLogger.info(`Generating vcard for ${decryptedId}`)
+        let vCard = await generateContactCard(decryptedId?.cardId)
             .then((res)=>{
                 return res
             })
             .catch((err: any) => {
-                utilityLogger.error('Error while generating card', { error: err });
-                res.status(500).send({ message: 'Error while generating card', error: err });
+                utilityLogger.error('Error while generating virtual card', { error: err });
+                res.status(500).send({ message: 'Error while generating virtual card', error: err });
             })
         //send the response
         res.status(200).send(vCard);

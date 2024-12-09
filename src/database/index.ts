@@ -291,17 +291,17 @@ export const createVCardDB = async (vCardData: any) => {
 // READ VCard by ID (GET)
 /**
  * Retrieves a VCard by its ID from the MongoDB database.
- * @param businessId The ID of the VCard to be retrieved.
+ * @param cardId The ID of the VCard to be retrieved.
  */
-export const getVCardByIdDB = async (businessId: string) => {
+export const getVCardByIdDB = async (cardId: string) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     try {
         dbLogger.info("Connecting to Database");
         await client.connect();
         const db = client.db(dbname);
 
-        const vCard = await db.collection('vcards').findOne({"businessId": businessId});
-        dbLogger.info('VCard found: ', businessId);
+        const vCard = await db.collection('vcards').findOne({"cardId": cardId});
+        dbLogger.info('VCard found: ', cardId);
         return vCard;
     } catch (error) {
         dbLogger.error({message: 'Error retrieving VCard', error});
