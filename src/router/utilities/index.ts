@@ -3,6 +3,7 @@ import generateContactCard from "../../utils/generateContactCard";
 import logger from '../../logger/logger';
 import {VCardData} from "../../common/types";
 import { createVCardDB, deleteVCardDB, updateVCardDB} from "../../database";
+import * as util from "util";
 
 const utilityLogger = logger.child({context:'utilityService'})
 
@@ -20,7 +21,7 @@ export const createVCard = async (req: Request, res: Response) => {
 
 export const getVCard = async (req: Request, res: Response) => {
     let businessId = req.body.businessId
-
+    utilityLogger.warn(businessId)
     if(businessId){
         //set content-type and disposition including desired filename
         res.set('Content-Type', `text/vcard; name="${businessId}.vcf"`);
