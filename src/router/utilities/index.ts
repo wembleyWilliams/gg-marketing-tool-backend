@@ -21,7 +21,6 @@ export const createVCard = async (req: Request, res: Response) => {
 
 export const getVCard = async (req: Request, res: Response) => {
     let businessId = req.body.businessId
-    utilityLogger.warn(businessId)
     if(businessId){
         //set content-type and disposition including desired filename
         res.set('Content-Type', `text/vcard; name="${businessId}.vcf"`);
@@ -32,8 +31,8 @@ export const getVCard = async (req: Request, res: Response) => {
                 return res
             })
             .catch((err: any) => {
-                utilityLogger.error('Error while generating card', { error: err });
-                res.status(500).send({ message: 'Error while generating card', error: err });
+                utilityLogger.error('Error while generating virtual card', { error: err });
+                res.status(500).send({ message: 'Error while generating virtual card', error: err });
             })
         //send the response
         res.status(200).send(vCard);
