@@ -36,11 +36,11 @@ let data : any = await getVCardByIdDB(id).then((res: any)=>{return res})
         vCard.homeFax = data.homeFax;
         vCard.lastName = data.lastName;
 
-        if (data.logo) {
-            vCard.logo.embedFromString(`data:image/jpeg;base64,${data.logo.url}`)
-            vCard.logo.mediaType = data.logo.mediaType;
-            vCard.logo.base64 = data.logo.base64;
-        }
+        // if (data.logo) {
+        //     vCard.logo.embedFromString(`data:image/jpeg;base64,${data.logo.url}`)
+        //     vCard.logo.mediaType = data.logo.mediaType;
+        //     vCard.logo.base64 = data.logo.base64;
+        // }
 
         vCard.middleName = data.middleName;
         vCard.namePrefix = data.namePrefix;
@@ -49,11 +49,11 @@ let data : any = await getVCardByIdDB(id).then((res: any)=>{return res})
         vCard.note = data.note;
         vCard.organization = data.organization;
 
-        if (data.photo) {
-            vCard.photo.embedFromString(`data:image/jpeg;base64,${data.logo.url}`)
-            vCard.photo.mediaType = data.photo.mediaType;
-            vCard.photo.base64 = data.photo.base64;
-        }
+        // if (data.photo) {
+        //     vCard.photo.embedFromString(`data:image/jpeg;base64,${data.logo.url}`)
+        //     vCard.photo.mediaType = data.photo.mediaType;
+        //     vCard.photo.base64 = data.photo.base64;
+        // }
 
         vCard.role = data.role;
 
