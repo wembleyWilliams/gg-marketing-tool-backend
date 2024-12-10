@@ -47,7 +47,7 @@ interface Media {
     base64: boolean;
     attachFromUrl?: (url: string) => void;
     embedFromFile?: (file: File) => void;
-    embedFromString?: (data: string) => void;
+    embedFromString?: (data: string, imagePng: string) => void;
 }
 
 export interface Social {
