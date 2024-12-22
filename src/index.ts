@@ -1,8 +1,9 @@
-import user from "./router/user";
+import user from "./router/user/routes";
 import business from "./router/business/routes";
 import card from "./router/card/routes";
 import metric from "./router/cardMetric/routes";
 import utility from "./router/utilities/routes";
+import auth from "./router/auth/routes";
 
 
 import passportService from './config/passport'
@@ -69,6 +70,7 @@ app.use('/business', business)
 app.use('/util', utility)
 app.use('/card', card)
 app.use('/metric',metric)
+app.use('/auth', auth)
 
 app.get('/health' , async (req: any, res: any)=> {
     try {

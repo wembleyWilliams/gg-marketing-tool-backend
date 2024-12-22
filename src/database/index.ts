@@ -418,6 +418,77 @@ export const createUserDB = async (newUser: UserData) => {
     }
 };
 
+/**
+ * Finds an existing OAuth user or creates a new one in the MongoDB database.
+ * @param profile The OAuth profile containing the user details.
+ * @param provider The OAuth provider name (e.g., 'google', 'facebook').
+ * @returns The existing or newly created user document.
+ */
+export const findOrCreateOAuthUserDB = async (
+    profile: any,
+    provider: string
+) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const {
+            emails: email,
+            id: authProviderId,
+            name: fullName,
+            photos: photo
+        } = profile;
+
+        dbLogger.info("Searching for existing user");
+        let user: UserData = await db.collection('users').findOne({
+            authProvider: provider,
+            authProviderId: authProviderId
+        });
+
+        if (user) {
+            dbLogger.info('User found:', user);
+            return user;
+        }
+
+        dbLogger.info("User not found. Creating new user");
+        const newUser: UserData = {
+            address: {
+                street: "",
+                city: "",
+                state: "",
+                postalCode: "",
+                country: "",
+                label:""
+            },
+            dob: "",
+            firstName: fullName.givenName,
+            lastName: fullName.familyName,
+            phone: "",
+            email: email[0],
+            password: null,
+            authProvider: provider,
+            authProviderId: authProviderId,
+            profilePicture: photo[0],
+            createdAt: new Date(),
+            updatedAt: new Date()
+        };
+
+        const result = await db.collection('users').insertOne(newUser);
+        dbLogger.info('New user created:', result.insertedId);
+        return newUser; // The newly created user document
+
+    } catch (error) {
+        dbLogger.error({ message: 'Error finding or creating OAuth User', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
 // READ User by ID (GET)
 /**
  * Retrieves a user by their ID from the MongoDB database.

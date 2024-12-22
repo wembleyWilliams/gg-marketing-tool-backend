@@ -1,4 +1,4 @@
-import { createUser, getUserById, updateUser, listUsers } from '../routes';
+import { createUser, getUserById, updateUser, listUsers } from '../index';
 import { createUserDB, getUserByIdDB, updateUserDB, listUsersDB } from '../../../database';
 
 jest.mock('../../../database');

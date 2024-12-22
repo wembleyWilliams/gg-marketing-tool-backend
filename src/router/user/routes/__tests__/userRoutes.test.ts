@@ -7,10 +7,10 @@ import {
     updateUser,
     deleteUser,
     listUsers
-} from '../index';
-import user from "../../index";
+} from '../../index';
+import user from "../index";
 
-jest.mock('../index', () => ({
+jest.mock('../../index', () => ({
     createUser: jest.fn(),
     loginUser: jest.fn(),
     getUserById: jest.fn(),

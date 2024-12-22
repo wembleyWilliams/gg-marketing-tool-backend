@@ -43,8 +43,8 @@ interface Address {
 
 interface Media {
     url?: string;
-    mediaType: string;
-    base64: boolean;
+    mediaType?: string;
+    base64?: boolean;
     attachFromUrl?: (url: string) => void;
     embedFromFile?: (file: File) => void;
     embedFromString?: (data: string, imagePng: string) => void;
@@ -143,11 +143,14 @@ export interface UserData {
     updatedAt: Date
     firstName: string;
     lastName: string;
-    age: number;
+    dob: string;
     email: string;
     address: Address;
     phone: string;
     profilePicture?: Media;
+    password?: string | null;
+    authProvider: string,
+    authProviderId: string
 }
 export interface Contact {
     firstname: string;
