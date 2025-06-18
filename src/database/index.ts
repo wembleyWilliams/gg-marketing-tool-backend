@@ -28,7 +28,7 @@ export const createBusinessDB = async (businessDetails: BusinessData) => {
 
         const db = client.db(dbname);
         const result = await db.collection("businesses").insertOne(businessDetails);
-        dbLogger.info("Business successfully inserted");
+        dbLogger.info(`Business successfully created ${result.insertedId.toString()}`);
         return result;
     } catch (error) {
         dbLogger.error({message: 'Error creating business', error});
@@ -46,7 +46,7 @@ export const createBusinessDB = async (businessDetails: BusinessData) => {
  * @param {Partial<BusinessData>} updateDetails - The details to update.
  * @returns {Promise<Object>} - The updated business record.
  */
-export const updateBusinessDB = async (id: ObjectId, updateDetails: Partial<BusinessData>) => {
+export const updateBusinessDB = async (id: string | ObjectId, updateDetails: Partial<BusinessData>) => {
     const client = new MongoClient(encodeURI(uri), {
         useNewUrlParser: true,
         useUnifiedTopology: true
@@ -56,11 +56,21 @@ export const updateBusinessDB = async (id: ObjectId, updateDetails: Partial<Busi
         dbLogger.info("Connecting to Database");
         await client.connect();
         const db = client.db(dbname);
+        const objectId = typeof id === 'string' ? new ObjectId(id) : id;
+        dbLogger.info(`Updating business with ID: ${id}`);
 
-        dbLogger.info("Updating business with ID:", id);
-        const result = await db.collection("businesses").updateOne({_id: id}, {$set: updateDetails});
+        // Destructure to remove _id from updateDetails
+        const { _id, ...updateData } = updateDetails;
 
-        dbLogger.info("Business updated:", result);
+        const result = await db.collection("businesses").updateOne(
+            { _id: objectId },
+            {
+                $set: { ...updateData } // Use the updateData without _id
+            }
+        );
+
+
+        dbLogger.info(`Business updated (${result.insertedId}) successfully!`);
         return result;
     } catch (error) {
         dbLogger.error({message: 'Error updating business', error});
@@ -276,9 +286,44 @@ export const createVCardDB = async (vCardData: any) => {
         await client.connect();
         const db = client.db(dbname);
 
-        const result = await db.collection('vcards').insertOne(vCardData);
-        dbLogger.info('VCard created:', result);
-        return result;
+        const defaultVCard = {
+            version: 3.0,
+            note: "This contact card was created using a Digital Business Card from GG Marketing",
+            logo: {
+                url: "",
+                mediaType: "image/png",
+                base64: false
+            },
+            photo: {
+                url: "",
+                mediaType: "image/jpeg",
+                base64: false
+            },
+            role: "Owner",
+            // Set nickname to firstname if it exists in vCardData
+            nickname: vCardData?.firstname || ""
+        };
+
+        // Merge provided data with defaults (provided data overrides defaults)
+        const completeVCard = {
+            ...defaultVCard,
+            ...vCardData,
+            // Ensure nested objects are properly merged
+            logo: {
+                ...defaultVCard.logo,
+                ...vCardData?.logo
+            },
+            photo: {
+                ...defaultVCard.photo,
+                ...vCardData?.photo
+            }
+        };
+
+
+        const result = await db.collection('vcards').insertOne(completeVCard);
+        const insertedId = result.insertedId.toString();
+        dbLogger.info(`VCard created: ${insertedId}`);
+        return insertedId;
     } catch (error) {
         dbLogger.error({message: 'Error creating VCard', error});
         return null;
@@ -301,7 +346,31 @@ export const getVCardByIdDB = async (cardId: string) => {
         const db = client.db(dbname);
 
         const vCard = await db.collection('vcards').findOne({"cardId": cardId});
-        dbLogger.info('VCard found: ', cardId);
+        dbLogger.info(`VCard found: ${vCard._id}`);
+        return vCard;
+    } catch (error) {
+        dbLogger.error({message: 'Error retrieving VCard', error});
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+// READ VCard by ID (GET)
+/**
+ * Retrieves a VCard by its ID from the MongoDB database.
+ * @param id The ID of the VCard to be retrieved.
+ */
+export const getVCardDB = async (id: string) => {
+    const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const vCard = await db.collection('vcards').findOne({"_id": new ObjectId(id)});
+        dbLogger.info(`VCard found: ${vCard._id}`);
         return vCard;
     } catch (error) {
         dbLogger.error({message: 'Error retrieving VCard', error});
@@ -315,10 +384,10 @@ export const getVCardByIdDB = async (cardId: string) => {
 // UPDATE VCard by ID (PUT)
 /**
  * Updates a VCard in the MongoDB database by its Owner ID.
- * @param ownerId The ID of the VCard to be updated.
+ * @param cardId The card ID of the VCard to be updated.
  * @param updatedVCard The VCard object containing the new data to be set.
  */
-export const updateVCardDB = async (ownerId: string, updatedVCard: Partial<VCardData>) => {
+export const updateVCardDB = async (cardId: string, updatedVCard: Partial<VCardData>) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     try {
         dbLogger.info("Connecting to Database");
@@ -326,11 +395,40 @@ export const updateVCardDB = async (ownerId: string, updatedVCard: Partial<VCard
         const db = client.db(dbname);
 
         const result = await db.collection('vcards').updateOne(
-            {"ownerId": ownerId},
-            {$set: updatedVCard},
+            {"cardId": cardId},
+            {$set: {...updatedVCard}},
             {upsert: false}
         );
         dbLogger.info('VCard updated:', result);
+        return result;
+    } catch (error) {
+        dbLogger.error({message: 'Error updating VCard', error});
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+// UPDATE VCard by ID (PUT)
+/**
+ * Updates a VCard in the MongoDB database by its Owner ID.
+ * @param id The card ID of the VCard to be updated.
+ * @param updatedVCard The VCard object containing the new data to be set.
+ */
+export const updateVCardByIdDB = async (id: string, updatedVCard: Partial<VCardData>) => {
+    const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const result = await db.collection('vcards').updateOne(
+            {"_id": new ObjectId(id)},
+            {$set: {...updatedVCard}},
+            {upsert: false}
+        );
+        dbLogger.info(`'VCard updated: ${result.upsertedId.toString()}`);
         return result;
     } catch (error) {
         dbLogger.error({message: 'Error updating VCard', error});
@@ -406,7 +504,7 @@ export const createUserDB = async (newUser: UserData) => {
         newUser.updatedAt = new Date();  // Set update date
 
         const result = await db.collection('users').insertOne(newUser);
-        dbLogger.info('User created:', result);
+        dbLogger.info(`User created: ${result.insertedId.toString()}`);
         return result;
 
     } catch (error) {
@@ -708,12 +806,14 @@ export const getSocialByUserIdDB = async (userId: string): Promise<any[]> => {
     });
 
     try {
+        dbLogger.info("Connecting to Socials Database");
         await client.connect();
         const db = client.db(dbname);
-        return await db.collection('socials').find({userId: userId}).toArray();
-
+        const socials = await db.collection('socials').find({userId: userId}).toArray();
+        dbLogger.info(`Number of Social(s) found : ${JSON.stringify(socials.length)}`);
+        return socials;
     } catch (error) {
-        console.error('Error fetching social data by user ID:', error);
+        dbLogger.error('Error fetching social data by user ID:', error);
         throw new Error('Find failed');
     } finally {
         client.close();
@@ -744,7 +844,6 @@ export const getSocialByBusinessIdDB = async (businessId: string): Promise<any[]
         client.close();
     }
 };
-
 
 /**
  * Retrieves a social media record by its ID.
@@ -811,7 +910,7 @@ export const updateSocialDB = async (socialId: string, updatedData: any): Promis
         await client.connect();
         const db = client.db(dbname);
         const result = await db.collection('socials').updateOne(
-            {"_id": socialId},
+            {"_id": new ObjectId(socialId)},
             {$set: updatedData}
         );
         return {modifiedCount: result.modifiedCount};
@@ -819,7 +918,8 @@ export const updateSocialDB = async (socialId: string, updatedData: any): Promis
         console.error('Error updating social data:', error);
         throw new Error('Update failed');
     } finally {
-        client.close();
+        await client.close();
+        dbLogger.info("Connection closed");
     }
 };
 
@@ -838,13 +938,16 @@ export const deleteSocialDB = async (socialId: string): Promise<any> => {
     try {
         await client.connect();
         const db = client.db(dbname);
-        const result = await db.collection('socials').deleteOne({"_id": socialId});
+        const result = await db.collection('socials').deleteOne(
+            {"_id": new ObjectId(socialId)}
+        );
         return {deletedCount: result.deletedCount};
     } catch (error) {
         console.error('Error deleting social data:', error);
         throw new Error('Delete failed');
     } finally {
-        client.close();
+        await client.close();
+        dbLogger.info("Connection closed");
     }
 };
 
@@ -855,12 +958,12 @@ export const deleteSocialDB = async (socialId: string): Promise<any> => {
 export const createCardDB = async (cardData: any) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to Card Database");
         await client.connect();
         const db = client.db(dbname);
 
         const result = await db.collection('cards').insertOne(cardData);
-        dbLogger.info('Card created successfully!', result);
+        dbLogger.info(`Card created : ${result.insertedId.toString()}`);
         return result;
     } catch (error) {
         dbLogger.error({message: 'Error creating Card', error});
@@ -878,13 +981,13 @@ export const createCardDB = async (cardData: any) => {
 export const getCardByIdDB = async (cardId: string) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to Card Database");
         await client.connect();
         const db = client.db(dbname);
 
         const objectId = new ObjectId(cardId)
         const card = await db.collection('cards').findOne({"_id": objectId});
-        dbLogger.info('Card found:', card);
+        dbLogger.info(`Card found : ${card._id.toString()}`);
         return card;
     } catch (error) {
         dbLogger.error({message: 'Error retrieving Card', error});
@@ -903,7 +1006,7 @@ export const getCardByIdDB = async (cardId: string) => {
 export const updateCardDB = async (cardId: string, updatedCard: Partial<Card>) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to Card Database");
         await client.connect();
         const db = client.db(dbname);
         const objectId = new ObjectId(cardId)
@@ -912,7 +1015,7 @@ export const updateCardDB = async (cardId: string, updatedCard: Partial<Card>) =
             {$set: updatedCard},
             {upsert: false}
         );
-        dbLogger.info('Card updated:', result);
+        dbLogger.info(`Card(s) updated: ${result.modifiedCount.toString()}`);
         return result;
     } catch (error) {
         dbLogger.error({message: 'Error updating Card', error});
@@ -930,7 +1033,7 @@ export const updateCardDB = async (cardId: string, updatedCard: Partial<Card>) =
 export const deleteCardDB = async (cardId: string) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to Card Database");
         await client.connect();
         const db = client.db(dbname);
 
@@ -952,7 +1055,7 @@ export const deleteCardDB = async (cardId: string) => {
 export const listCardsDB = async () => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to Card Database");
         await client.connect();
         const db = client.db(dbname);
 
@@ -983,7 +1086,7 @@ export const createHashMappingDB = async (mappingData: {
 }): Promise<any> => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to HashMapping Database");
         await client.connect();
         const db = client.db(dbname);
 
@@ -1000,19 +1103,19 @@ export const createHashMappingDB = async (mappingData: {
 };
 
 /**
- * Retrieves a mapping entry by its hash.
- * @param {string} hash - The hash to search for in the database.
- * @returns {Promise<any>} The mapping data containing the original card ID if found.
+ * Retrieves a hash mapping entry by its cardId.
+ * @param {string} cardId - The MongoDB ID of the card to retrieve the hash mapping for.
+ * @returns {Promise<any>} The retrieved hash mapping document, or null if not found.
  */
-export const getHashMappingByHashDB = async (hash: string): Promise<any> => {
+export const getCardHashMappingByCardIdDB = async (cardId: string): Promise<any> => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to HashMapping Database");
         await client.connect();
         const db = client.db(dbname);
 
-        const mapping = await db.collection('cardHashMapping').findOne({hash});
-        dbLogger.info('Hash mapping found:', mapping);
+        const mapping = await db.collection('cardHashMappings').findOne(cardId);
+        dbLogger.info('Hash found:', mapping);
         return mapping;
     } catch (error) {
         dbLogger.error({message: 'Error retrieving hash mapping', error});
@@ -1032,7 +1135,7 @@ export const getHashMappingByHashDB = async (hash: string): Promise<any> => {
 export const updateHashMappingDB = async (cardId: string, updatedData: Partial<{ hash: string }>): Promise<any> => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to HashMapping Database");
         await client.connect();
         const db = client.db(dbname);
 
@@ -1059,7 +1162,7 @@ export const updateHashMappingDB = async (cardId: string, updatedData: Partial<{
 export const deleteHashMappingDB = async (cardId: string): Promise<any> => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to HashMapping Database");
         await client.connect();
         const db = client.db(dbname);
 
@@ -1082,7 +1185,7 @@ export const deleteHashMappingDB = async (cardId: string): Promise<any> => {
 export const listHashMappingsDB = async (): Promise<any[]> => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to HashMapping Database");
         await client.connect();
         const db = client.db(dbname);
 
@@ -1098,7 +1201,6 @@ export const listHashMappingsDB = async (): Promise<any[]> => {
     }
 };
 
-
 /**
  * Inserts a new CardMetric into the MongoDB database.
  * @param cardMetricData The CardMetric object to be inserted.
@@ -1107,7 +1209,7 @@ export const listHashMappingsDB = async (): Promise<any[]> => {
 export const createCardMetricDB = async (cardMetricData: any) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to CardMetric Database");
         await client.connect();
         const db = client.db(dbname);
 
@@ -1131,7 +1233,7 @@ export const createCardMetricDB = async (cardMetricData: any) => {
 export const getCardMetricByIdDB = async (cardMetricId: string) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to CardMetric Database");
         await client.connect();
         const db = client.db(dbname);
 
@@ -1155,7 +1257,7 @@ export const getCardMetricByIdDB = async (cardMetricId: string) => {
 export const getCardMetricByCardIdDB = async (cardId: string) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to CardMetric Database");
         await client.connect();
         const db = client.db(dbname);
 
@@ -1172,7 +1274,6 @@ export const getCardMetricByCardIdDB = async (cardId: string) => {
     }
 };
 
-
 /**
  * Updates a CardMetric in the MongoDB database by its ID.
  * @param cardMetricId The ID of the CardMetric to be updated.
@@ -1182,7 +1283,7 @@ export const getCardMetricByCardIdDB = async (cardId: string) => {
 export const updateCardMetricDB = async (cardMetricId: string, updatedCardMetric: Partial<any>) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to CardMetric Database");
         await client.connect();
         const db = client.db(dbname);
 
@@ -1210,7 +1311,7 @@ export const updateCardMetricDB = async (cardMetricId: string, updatedCardMetric
 export const deleteCardMetricDB = async (cardId: string) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to CardMetric Database");
         await client.connect();
         const db = client.db(dbname);
 
@@ -1233,7 +1334,7 @@ export const deleteCardMetricDB = async (cardId: string) => {
 export const listCardMetricsDB = async () => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to CardMetric Database");
         await client.connect();
         const db = client.db(dbname);
 
@@ -1257,7 +1358,7 @@ export const listCardMetricsDB = async () => {
 export const getCardHashMappingByIdDB = async (mappingId: string) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to CardMetric Database");
         await client.connect();
         const db = client.db(dbname);
 
@@ -1274,19 +1375,43 @@ export const getCardHashMappingByIdDB = async (mappingId: string) => {
 };
 
 /**
+ * Retrieves a mapping entry by its hash.
+ * @param {string} hash - The hash to search for in the database.
+ * @returns {Promise<any>} The mapping data containing the original card ID if found.
+ */
+export const getHashMappingByHashDB = async (hash: string): Promise<any> => {
+    const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
+    try {
+        dbLogger.info("Connecting to HashMapping Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const mapping = await db.collection('cardHashMappings').findOne({hash});
+        dbLogger.info('Hash mapping found:', mapping);
+        return mapping;
+    } catch (error) {
+        dbLogger.error({message: 'Error retrieving hash mapping', error});
+        throw new Error('Failed to retrieve hash mapping');
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
  * Retrieves a CardHashMapping by its cardId from the MongoDB database.
  * @param cardId The ID of the card associated with the CardHashMapping to be retrieved.
  * @returns The CardHashMapping object if found, otherwise null.
  */
-export const getCardHashMappingByCardIdDB = async (cardId: string) => {
+export const getCardHashMappingsByCardIdDB = async (cardId: string) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to HashMapping Database");
         await client.connect();
         const db = client.db(dbname);
 
-        const cardHashMapping = await db.collection('cardHashMappings').findOne({ "cardId": cardId });
-        dbLogger.info('CardHashMapping found:', cardHashMapping);
+        const cardHashMapping = await db.collection('cardHashMappings').findOne({ cardId: cardId });
+        dbLogger.info(`CardHashMapping found: ${cardHashMapping.identifier.toString()}`);
         return cardHashMapping;
     } catch (error) {
         dbLogger.error({ message: 'Error retrieving CardHashMapping by cardId', error });
@@ -1303,10 +1428,10 @@ export const getCardHashMappingByCardIdDB = async (cardId: string) => {
  * @param updatedCardHashMapping The object containing the new data to be set.
  * @returns The result of the update operation.
  */
-export const updateCardHashMappingDB = async (mappingId: string, updatedCardHashMapping: Partial<any>) => {
+export const updateCardHashMappingsDB = async (mappingId: string, updatedCardHashMapping: Partial<any>) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to HashMapping Database");
         await client.connect();
         const db = client.db(dbname);
 
@@ -1331,10 +1456,10 @@ export const updateCardHashMappingDB = async (mappingId: string, updatedCardHash
  * @param mappingId The ID of the CardHashMapping to be deleted.
  * @returns The result of the delete operation.
  */
-export const deleteCardHashMappingDB = async (mappingId: string) => {
+export const deleteCardHashMappingsDB = async (mappingId: string) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to HashMapping Database");
         await client.connect();
         const db = client.db(dbname);
 
@@ -1357,7 +1482,7 @@ export const deleteCardHashMappingDB = async (mappingId: string) => {
 export const listCardHashMappingsDB = async () => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to HashMapping Database");
         await client.connect();
         const db = client.db(dbname);
 
@@ -1383,7 +1508,7 @@ export const aggregateDataDB = async (identifier: string) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 
     try {
-        dbLogger.info("Connecting to Database");
+        dbLogger.info("Connecting to Aggregation Database");
         await client.connect();
         const db = client.db(dbname);
         const cardFromHashTable = await getCardHashMappingByIdDB(identifier)

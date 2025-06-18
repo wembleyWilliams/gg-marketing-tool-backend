@@ -10,8 +10,11 @@ import passportService from './config/passport'
 import requestLogger from "./logger/requestLogger";
 import logger from "./logger/logger";
 import {healthDB} from "./database";
-// import { version } from '../package.json';
+import {graphqlHTTP} from "express-graphql";
 
+import schema from "./schemas/index";
+import resolvers from "./resolvers/index"
+import * as db from "./database/index"
 
 const passport = require("passport")
 const express = require("express");
@@ -21,7 +24,7 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors")
 
 const mainLogger = logger.child({context:'main'})
-
+const root = resolvers
 const app = express();
 
 //Passport config
@@ -64,6 +67,18 @@ app.use(requestLogger)
 //Passport Middleware
 app.use(passport.initialize())
 app.use(passport.session())
+
+
+//GraphQL API
+app.use('/graphql',
+    graphqlHTTP({
+        schema: schema,
+        graphiql: true,
+        customFormatErrorFn: (err) => {
+            console.error('GraphQL Error:', err);
+            return err;
+        },
+    }))
 
 app.use('/user', user)
 app.use('/business', business)
