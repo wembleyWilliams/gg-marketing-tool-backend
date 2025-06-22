@@ -473,7 +473,8 @@ export const findOrCreateOAuthUserDB = async (
             authProviderId: authProviderId,
             profilePicture: photo[0],
             createdAt: new Date(),
-            updatedAt: new Date()
+            updatedAt: new Date(),
+            firstLogin: true
         };
 
         const result = await db.collection('users').insertOne(newUser);

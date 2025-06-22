@@ -139,8 +139,8 @@ export interface UserData {
     // password: string,
     // profilePicture?: { data: string, mime: string },
     // contact: Contact,
-    createdAt: Date,
-    updatedAt: Date
+    createdAt: Date;
+    updatedAt: Date;
     firstName: string;
     lastName: string;
     dob: string;
@@ -149,8 +149,9 @@ export interface UserData {
     phone: string;
     profilePicture?: Media;
     password?: string | null;
-    authProvider: string,
-    authProviderId: string
+    authProvider: string;
+    authProviderId: string;
+    firstLogin: boolean;
 }
 export interface Contact {
     firstname: string;

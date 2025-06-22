@@ -1,4 +1,6 @@
 import logger from "../../../logger/logger";
+import {Request, Response} from "express";
+import {generateTempPassword, setNewPassword, verifyTempPassword} from "../index";
 
 const express = require('express')
 const passport = require('passport');
@@ -38,7 +40,9 @@ auth.get('/google/callback',
     }
 );
 
-
+auth.post('/set-password', setNewPassword);
+auth.post('/verify-temp-password', verifyTempPassword);
+auth.post('/generate-temp-password', generateTempPassword);
 
 // auth.get('/logout', (req: any, res: any) => {
 //     req.logout((err) => {
