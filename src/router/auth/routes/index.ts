@@ -1,6 +1,7 @@
 import logger from "../../../logger/logger";
 import {Request, Response} from "express";
-import {generateTempPassword, setNewPassword, verifyTempPassword} from "../index";
+import {generateTempPassword, loginUser, setNewPassword, verifyTempPassword} from "../index";
+import {next} from "cheerio/lib/api/traversing";
 
 const express = require('express')
 const passport = require('passport');
@@ -13,13 +14,15 @@ const auth = express.Router();
  * Route to handle user login with the local strategy.
  */
 auth.post(
-    '/login',
-    passport.authenticate('local', {
-        failureRedirect: '/login', // Redirect here if authentication fails
-        successRedirect: '/dashboard', // Redirect here if authentication succeeds
-        failureFlash: true, // Optional: Enable failure messages
-        successFlash: 'Welcome back!', // Optional: Enable success messages
-    })
+    '/login',async (req: any, res: any, next: any)=> {
+
+        try {
+            passport.authenticate('local', loginUser(req,res))
+        } catch (error) {
+            passLogger.error('Error setting new password', {error});
+            res.status(500).json({success: false, message: 'Server error setting new password', error});
+        }
+    }
 );
 
 auth.get('/google', passport.authenticate('google',{

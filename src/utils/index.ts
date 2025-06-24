@@ -68,7 +68,7 @@ export const utils = {
             role: user.role||'admin',
         };
 
-        return jwt.sign(payload, JWT_SECRET, {expiresIn: '7d'});
+        return jwt.sign(payload, JWT_SECRET, {expiresIn: '1h'});
     }
 
 }

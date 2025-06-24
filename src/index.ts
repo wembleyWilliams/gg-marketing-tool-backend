@@ -11,7 +11,7 @@ import requestLogger from "./logger/requestLogger";
 import logger from "./logger/logger";
 import {healthDB} from "./database";
 // import { version } from '../package.json';
-
+import flash from 'connect-flash';
 
 const passport = require("passport")
 const express = require("express");

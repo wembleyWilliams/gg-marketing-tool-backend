@@ -50,7 +50,7 @@ const passportService = (passport: any) => {
                 if (isMatch) {
                     return done(null, user);
                 } else {
-                    return done(null, false, { message: 'Password incorrect' });
+                    return done(null, false);
                 }
             } catch (err) {
                 authLogger.error('Error during authentication: ' ,err)

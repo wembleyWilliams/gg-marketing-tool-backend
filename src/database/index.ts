@@ -530,7 +530,7 @@ export const getUserByEmailDB = async (userEmail: string) => {
         const db = client.db(dbname);
 
         const user = await db.collection('users').findOne({"email": userEmail});
-        dbLogger.info('User found:', user);
+        dbLogger.info('User found:', user?._id);
         return user;
 
     } catch (error) {

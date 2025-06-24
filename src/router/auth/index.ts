@@ -6,6 +6,49 @@ import {getUserByEmailDB, updateUserDB} from "../../database";
 
 const passLogger = logger.child({context: 'passService'});
 
+// POST /api/login
+export const loginUser = async (req: Request, res: Response) => {
+    try {
+        const { email, password } = req.body;
+
+        const user = await getUserByEmailDB(email);
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+
+        // Ensure user has already set a password (not in firstLogin state)
+        if (user.firstLogin) {
+            return res.status(400).json({ success: false, message: 'User must set password before login' });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({ success: false, message: 'Incorrect password' });
+        }
+
+        const token = utils.generateJWT(user);
+
+        passLogger.info(`User logged in: ${email}`);
+
+        return res.status(200).json({
+            success: true,
+            message: 'Login successful',
+            token,
+            user: {
+                _id: user._id,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName,
+            },
+        });
+
+    } catch (error) {
+        passLogger.error('Error logging in user', { error });
+        res.status(500).json({ success: false, message: 'Server error during login', error });
+    }
+};
+
+
 // POST /api/set-password
 export const setNewPassword = async (req: Request, res: Response) => {
     try {
