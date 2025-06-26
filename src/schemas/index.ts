@@ -6,7 +6,7 @@ import {
     GraphQLID,
     GraphQLNonNull,
     GraphQLInputObjectType,
-    GraphQLBoolean, GraphQLList, GraphQLOutputType
+    GraphQLBoolean, GraphQLList
 } from 'graphql';
 
 import * as db from "../database"
@@ -195,6 +195,7 @@ const UserType = new GraphQLObjectType({
         password: { type: GraphQLString },
         authProvider: { type: GraphQLString },
         authProviderId: { type: GraphQLString },
+        firstLogin: { type: GraphQLBoolean }
     },
 });
 
@@ -213,6 +214,7 @@ const UserInputType = new GraphQLInputObjectType({
         password: { type: GraphQLString },
         authProvider: { type: GraphQLString },
         authProviderId: { type: GraphQLString },
+        firstLogin: { type: GraphQLBoolean }
     }),
 });
 
@@ -257,6 +259,7 @@ const UpdateUserInputType = new GraphQLInputObjectType({
         password: { type: GraphQLString },
         authProvider: { type: GraphQLString },
         authProviderId: { type: GraphQLString },
+        firstLogin: { type: GraphQLBoolean }
     }),
 });
 
@@ -553,40 +556,87 @@ const UpdateVCardInputWrapper = new GraphQLInputObjectType({
     })
 })
 
+const LocationInputType = new GraphQLInputObjectType({
+    name: 'LocationInput',
+    fields: () => ({
+        latitude: { type: new GraphQLNonNull(GraphQLString) },
+        longitude: { type: new GraphQLNonNull(GraphQLString) },
+        accuracy: { type: GraphQLString }
+    })
+});
+
+const DeviceInfoInputType = new GraphQLInputObjectType({
+    name: 'DeviceInfoInput',
+    fields: () => ({
+        os: { type: GraphQLString },
+        browser: { type: GraphQLString },
+        version: { type: GraphQLString },
+        ip: { type: GraphQLString },
+        userAgent: { type: GraphQLString }
+        // Add other device properties as needed
+    })
+});
+
 const TapInputType = new GraphQLInputObjectType({
     name: 'TapInput',
     fields: () => ({
-        timestamp: { type: GraphQLString },
-        location: { type: GraphQLString },
-        deviceInfo: { type: GraphQLString }
+        timestamp: { type: new GraphQLNonNull(GraphQLString) },
+        location: { type: LocationInputType },
+        deviceInfo: { type: DeviceInfoInputType }
+    })
+});
+
+const LocationType = new GraphQLObjectType({
+    name: 'Location',
+    fields: () => ({
+        latitude: { type: new GraphQLNonNull(GraphQLString) },
+        longitude: { type: new GraphQLNonNull(GraphQLString) },
+        accuracy: { type: GraphQLString }
+    })
+});
+
+const DeviceInfoType = new GraphQLObjectType({
+    name: 'DeviceInfo',
+    fields: () => ({
+        os: { type: GraphQLString },
+        browser: { type: GraphQLString },
+        version: { type: GraphQLString },
+        ip: { type: GraphQLString },
+        userAgent: { type: GraphQLString }
     })
 });
 
 const TapType = new GraphQLObjectType({
-    name:'Tap',
-    fields:  {
-        timestamp: { type: GraphQLString }, // ISO 8601 formatted timestamp
-        location: { type: GraphQLString }, // null or string
-        deviceInfo: { type: GraphQLString } // null or string
-    }
-})
+    name: 'Tap',
+    fields: () => ({
+        timestamp: { type: new GraphQLNonNull(GraphQLString) },
+        location: { type: LocationType },
+        deviceInfo: { type: DeviceInfoType }
+    })
+});
+
+
 
 /**
  * Define the Card type
  */
+
+// Card Type that includes taps
 const CardType = new GraphQLObjectType({
     name: 'Card',
-    fields: {
-        id: { type: GraphQLID }, // Equivalent to "_id"
-        userId: { type: GraphQLID },
-        businessId: { type: GraphQLID },
-        status: { type: GraphQLString },
-        tapCount: { type: GraphQLInt },
-        lastTap: { type: GraphQLString }, // ISO 8601 formatted timestamp
-        taps: { type: TapType },
-        createdAt: { type: GraphQLString }, // ISO 8601 formatted timestamp
-        deactivatedAt: { type: GraphQLString } // Can be an empty string or ISO 8601 formatted timestamp
-    }
+    fields: () => ({
+        _id: { type: new GraphQLNonNull(GraphQLID) },
+        userId: { type: new GraphQLNonNull(GraphQLString) },
+        businessId: { type: GraphQLString },
+        type: { type: new GraphQLNonNull(GraphQLString) }, // "personal" | "business"
+        status: { type: new GraphQLNonNull(GraphQLString) }, // "active" | "inactive"
+        title: { type: GraphQLString },
+        tapCount: { type: new GraphQLNonNull(GraphQLInt) },
+        lastTap: { type: GraphQLString },
+        taps: { type: new GraphQLList(TapType) },
+        createdAt: { type: new GraphQLNonNull(GraphQLString) },
+        deactivatedAt: { type: GraphQLString }
+    })
 });
 
 const CardResponseType = new GraphQLObjectType( {
@@ -601,14 +651,16 @@ const CardResponseType = new GraphQLObjectType( {
 const CardInputType = new GraphQLInputObjectType({
     name: 'CardInput',
     fields: () => ({
-        id: { type: GraphQLID },
-        userId: { type: GraphQLID },
-        businessId: { type: GraphQLID },
-        status: { type: GraphQLString },
-        tapCount: { type: GraphQLInt },
+        _id: { type: new GraphQLNonNull(GraphQLID) },
+        userId: { type: new GraphQLNonNull(GraphQLString) },
+        businessId: { type: GraphQLString },
+        type: { type: new GraphQLNonNull(GraphQLString) }, // "personal" | "business"
+        status: { type: new GraphQLNonNull(GraphQLString) }, // "active" | "inactive"
+        title: { type: GraphQLString },
+        tapCount: { type: new GraphQLNonNull(GraphQLInt) },
         lastTap: { type: GraphQLString },
-        taps: { type: TapInputType },
-        createdAt: { type: GraphQLString },
+        taps: { type: new GraphQLList(TapInputType) },
+        createdAt: { type: new GraphQLNonNull(GraphQLString) },
         deactivatedAt: { type: GraphQLString }
     })
 });

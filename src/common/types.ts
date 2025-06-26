@@ -132,15 +132,6 @@ export interface UserBusinessRole {
 }
 
 export interface UserData {
-    // _id: string,
-    // firstname: string,
-    // lastname: string,
-    // age: number,
-    // email: string,
-    // businessId?: string[],
-    // password: string,
-    // profilePicture?: { data: string, mime: string },
-    // contact: Contact,
     createdAt: Date;
     updatedAt: Date;
     firstName: string;
