@@ -853,7 +853,7 @@ export const deleteSocialDB = async (socialId: string): Promise<any> => {
  * Inserts a new Card into the MongoDB database.
  * @param cardData The Card object to be inserted.
  */
-export const createCardDB = async (cardData: any) => {
+export const createCardDB = async (cardData: Card) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     try {
         dbLogger.info("Connecting to Database");
