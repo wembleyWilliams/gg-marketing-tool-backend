@@ -195,7 +195,8 @@ const UserType = new GraphQLObjectType({
         password: { type: GraphQLString },
         authProvider: { type: GraphQLString },
         authProviderId: { type: GraphQLString },
-        firstLogin: { type: GraphQLBoolean }
+        firstLogin: { type: GraphQLBoolean },
+        cards: { type: new GraphQLList(GraphQLID) },
     },
 });
 
@@ -214,7 +215,8 @@ const UserInputType = new GraphQLInputObjectType({
         password: { type: GraphQLString },
         authProvider: { type: GraphQLString },
         authProviderId: { type: GraphQLString },
-        firstLogin: { type: GraphQLBoolean }
+        firstLogin: { type: GraphQLBoolean },
+        cards: { type: new GraphQLList(GraphQLID) },
     }),
 });
 
@@ -589,8 +591,8 @@ const TapInputType = new GraphQLInputObjectType({
 const LocationType = new GraphQLObjectType({
     name: 'Location',
     fields: () => ({
-        latitude: { type: new GraphQLNonNull(GraphQLString) },
-        longitude: { type: new GraphQLNonNull(GraphQLString) },
+        latitude: { type: GraphQLString },
+        longitude: { type: GraphQLString },
         accuracy: { type: GraphQLString }
     })
 });
