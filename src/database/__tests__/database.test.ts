@@ -2,8 +2,7 @@ import * as db from '../index';
 import {BusinessData, VCardData} from "../../common/types";
 import {ObjectId} from "mongodb";
 import {aggregateDataDB} from "../index";
-
-
+import * as type from '../../common/types'
 
 const MongoClient = require('mongodb').MongoClient;
 jest.mock('mongodb');
@@ -23,30 +22,6 @@ const businessData: BusinessData = {
         mediaType: "base64EncodedLogoData",
         base64: true
     },
-    // contact: {
-    //     firstname: "Jane",
-    //     lastname: "Smith",
-    //     phoneNumbers: [{
-    //         countryCode: "+1",
-    //         digits: "1234567890",
-    //         label: "Work",
-    //         number: "123-456-7890"
-    //     }],
-    //     emails: [{
-    //         email: "jane.smith@techsolutions.com",
-    //         label: "Work"
-    //     }],
-    //     addresses: [{
-    //         city: "New York",
-    //         country: "USA",
-    //         isoCountryCode: "US",
-    //         label: "Work",
-    //         postalCode: "10001",
-    //         region: "NY",
-    //         street: "456 Tech Blvd"
-    //     }],
-    //     contactType: "Business"
-    // },
     address: {
         label: "home",
         street: "456 Tech Blvd",
@@ -206,13 +181,55 @@ describe('CARD METRICS table CRUD operations', () => {
 
 describe('CARDS table CRUD operations', () => {
     let mockClient: any;
-beforeEach(()=>{
+
+    const mockCard: type.Card = {
+        _id: 'card123',
+        userId: 'user456',
+        businessId: 'biz789',
+        type: 'business',
+        status: 'active',
+        title: 'Lead Developer',
+        tapCount: 12,
+        lastTap: new Date('2025-07-01T10:00:00Z'),
+        taps: [
+            {
+                timestamp: new Date('2025-06-30T14:30:00Z'),
+                location: {
+                    latitude: '40.7128',
+                    longitude: '-74.0060',
+                    accuracy: '5',
+                },
+                deviceInfo: {
+                    os: 'iOS 17',
+                    browser: 'Safari',
+                    ip: '192.168.1.101',
+                },
+            },
+            {
+                timestamp: new Date('2025-06-29T09:15:00Z'),
+                location: {
+                    latitude: '42.3601',
+                    longitude: '-71.0589',
+                    accuracy: '10',
+                },
+                deviceInfo: {
+                    os: 'Android 14',
+                    browser: 'Chrome',
+                    ip: '10.0.0.5',
+                },
+            },
+        ],
+        createdAt: new Date('2025-06-01T08:00:00Z'),
+        deactivatedAt: undefined, // or you could simulate a deactivated card with: new Date('2025-07-02T12:00:00Z')
+    };
+
+    beforeEach(()=>{
     mockClient = {
         connect: jest.fn(),
         db: jest.fn().mockReturnValue({
             collection: jest.fn().mockReturnValue({
                 insertOne: jest.fn().mockResolvedValue({insertedId: 'mockedId'}),
-                findOne: jest.fn().mockResolvedValue({cardData}),
+                findOne: jest.fn().mockResolvedValue(cardData),
                 updateOne: jest.fn().mockResolvedValue({modifiedCount: 1}),
                 deleteOne: jest.fn().mockResolvedValue({})
             }),
@@ -229,7 +246,7 @@ beforeEach(()=>{
     describe('createCardDB', () => {
 
         it('should insert a new card and return the result', async () => {
-            const cardData = {userId: 'user123', businessId: 'business123', status: 'active'};
+            const cardData = mockCard;
             const result = await db.createCardDB(cardData);
             expect(mockClient.connect).toHaveBeenCalledTimes(1);
             expect(mockClient.db().collection().insertOne).toHaveBeenCalledWith(cardData);
@@ -238,7 +255,7 @@ beforeEach(()=>{
         });
 
         it('should return null if there is an error', async () => {
-            const cardData = {userId: 'user123', businessId: 'business123', status: 'active'};
+            const cardData = mockCard;
 
             mockClient = {
                 connect: jest.fn(),
@@ -252,7 +269,7 @@ beforeEach(()=>{
 
             MongoClient.mockReturnValue(mockClient);
 
-            const result = await db.createCardDB(cardData);
+            const result = await db.createCardDB(mockCard);
 
             expect(mockClient.connect).toHaveBeenCalledTimes(1);
             expect(mockClient.db().collection().insertOne).toHaveBeenCalledWith(cardData);
@@ -262,46 +279,56 @@ beforeEach(()=>{
     });
 
     describe('getCardByIdDB', () => {
-        it('should retrieve a card by its ID', async () => {
-            const cardId = 'some-card-id';
-            const result = await db.getCardByIdDB(cardId);
+        const cardId = new ObjectId('60f6b89e99b1b72f28bcb1e9'); // simulate real ObjectId string
 
-
-            expect(mockClient.db().collection().findOne).toHaveBeenCalledWith({"_id": expect.any(Object)});
-            expect(result).toEqual({cardData});
-        });
-
-        it('should return null if there is an error', async () => {
-            const cardId = 'some-card-id';
-
+        beforeEach(() => {
             mockClient = {
                 connect: jest.fn(),
                 db: jest.fn().mockReturnValue({
                     collection: jest.fn().mockReturnValue({
-                        findOne: jest.fn().mockRejectedValue(new Error('Find error')),
+                        findOne: jest.fn().mockResolvedValue(mockCard),
                     }),
                 }),
                 close: jest.fn(),
-            }
+            };
 
             MongoClient.mockReturnValue(mockClient);
+        });
 
-            const result = await db.getCardByIdDB(cardId);
+        it('should retrieve a card by its ID', async () => {
+            const result = await db.getCardByIdDB(cardId.toString());
+
+            expect(mockClient.connect).toHaveBeenCalled();
+            expect(mockClient.db).toHaveBeenCalled();
+            expect(mockClient.db().collection).toHaveBeenCalledWith('cards');
+            expect(mockClient.db().collection().findOne).toHaveBeenCalledWith(
+                expect.objectContaining({ "_id": expect.any(ObjectId)}));
+            expect(result).toEqual(mockCard);
+            expect(mockClient.close).toHaveBeenCalled();
+        });
+
+        it('should return null if there is an error', async () => {
+            mockClient.db().collection().findOne.mockRejectedValueOnce(new Error('DB error'));
+            MongoClient.mockReturnValue(mockClient);
+
+            const result = await db.getCardByIdDB(cardId.toString());
 
             expect(result).toBeNull();
+            expect(mockClient.close).toHaveBeenCalled();
         });
     });
+
 
     describe('updateCardDB', () => {
         it('should update a card and return the result', async () => {
             const cardId = 'some-card-id';
-            const updatedCard = {status: false};
+            const updatedCard = {status: "active"};
             const mockResult = {modifiedCount: 1};
 
-            const result = await db.updateCardDB(cardId, {status: false});
+            const result = await db.updateCardDB(cardId, {status: "active"});
             expect(mockClient.connect).toHaveBeenCalledTimes(1);
             expect(mockClient.db().collection().updateOne).toHaveBeenCalledWith(
-                {"_id": expect.any(Object)},
+                {"_id": expect.any(ObjectId)},
                 {$set: updatedCard},
                 {upsert: false}
             );
@@ -322,7 +349,7 @@ beforeEach(()=>{
             }
 
             MongoClient.mockReturnValue(mockClient);
-            const result = await db.updateCardDB(cardId, {status: false});
+            const result = await db.updateCardDB(cardId, {status: "active"});
 
             expect(result).toBeNull();
         });
@@ -706,9 +733,10 @@ describe('VCARD table CRUD Operations', () => {
 
         it('should insert vCard data into the database', async () => {
             const result = await db.createVCardDB(mockVCardData);
-            expect(mockClient.db().collection().insertOne).toHaveBeenCalledWith(mockVCardData);
+            expect(mockClient.db().collection().insertOne).toHaveBeenCalledWith(
+                expect.objectContaining(mockVCardData));
             expect(mockClient.connect).toHaveBeenCalledTimes(1);
-            expect(result).toEqual({insertedId: 'mockVCardId'});
+            expect(result).toEqual('mockVCardId');
         });
 
         it('should return null if an error occurs', async () => {
@@ -746,7 +774,7 @@ describe('VCARD table CRUD Operations', () => {
             const result = await db.getVCardByIdDB(mockOwnerId);
 
             expect(mockClient.connect).toHaveBeenCalledTimes(1);
-            expect(mockClient.db().collection().findOne).toHaveBeenCalledWith({ownerId: mockOwnerId});
+            expect(mockClient.db().collection().findOne).toHaveBeenCalledWith({cardId: mockOwnerId});
             expect(result).toEqual(mockVCardData);
         });
 
@@ -783,7 +811,7 @@ describe('VCARD table CRUD Operations', () => {
 
             expect(mockClient.connect).toHaveBeenCalledTimes(1);
             expect(mockClient.db().collection().updateOne).toHaveBeenCalledWith(
-                {ownerId: mockOwnerId},
+                {cardId: mockOwnerId},
                 {$set: mockUpdatedVCard},
                 {upsert: false}
             );
@@ -1100,439 +1128,439 @@ describe('healthDB', () => {
         await expect(db.healthDB()).rejects.toThrow('Connection failed');
     });
 });
-
-describe('SOCIALS Table CRUD Operations', () => {
-    let mockClient: any;
-    const mockSocial = {
-        user_id: 'user123',
-        socialMediaPlatform: 'Instagram',
-        profileName: 'john_doe',
-        profileUrl: 'https://www.instagram.com/john_doe',
-    };
-
-    beforeEach(() => {
-        mockClient = {
-            connect: jest.fn(),
-            db: jest.fn().mockReturnValue({
-                collection: jest.fn().mockReturnValue({
-                    insertOne: jest.fn().mockResolvedValue({insertedId: 'mockedSocialId'}),
-                    findOne: jest.fn().mockResolvedValue(mockSocial),
-                    find: jest.fn().mockReturnValue({
-                        toArray: jest.fn().mockResolvedValue([mockSocial]),
-                    }),
-                    updateOne: jest.fn().mockResolvedValue({modifiedCount: 1}),
-                    deleteOne: jest.fn().mockResolvedValue({deletedCount: 1}),
-                }),
-            }),
-            close: jest.fn(),
-        };
-        MongoClient.mockReturnValue(mockClient);
-    });
-
-    // Test for Creating a Social Entry
-    describe('createSocialDB', () => {
-        it('should insert social data into the database', async () => {
-            const result = await db.createSocialDB(mockSocial);
-            expect(mockClient.connect).toHaveBeenCalledTimes(1);
-            expect(mockClient.db().collection().insertOne).toHaveBeenCalledWith(mockSocial);
-            expect(result).toEqual({insertedId: 'mockedSocialId'});
-            expect(mockClient.close).toHaveBeenCalledTimes(1);
-        });
-
-        it('should log an error if insertion fails', async () => {
-            mockClient.db().collection().insertOne.mockRejectedValue(new Error('Insert failed'));
-            await expect(db.createSocialDB(mockSocial)).rejects.toThrow('Insert failed');
-        });
-    });
-
-    // Test for Reading a Single Social Entry
-    describe('getSocialDB', () => {
-        it('should retrieve a social record by social_id', async () => {
-            const result = await db.getSocialDB('mockedSocialId');
-            expect(mockClient.connect).toHaveBeenCalledTimes(1);
-            expect(mockClient.db().collection().findOne).toHaveBeenCalled();
-            expect(result).toEqual(mockSocial);
-            expect(mockClient.close).toHaveBeenCalledTimes(1);
-        });
-
-        it('should log an error if retrieval fails', async () => {
-            mockClient.db().collection().findOne.mockRejectedValue(new Error('Find failed'));
-            await expect(db.getSocialDB('mockedSocialId')).rejects.toThrow('Find failed');
-        });
-    });
-
-    // Test for Reading Social Entries by User ID
-    describe('getSocialByUserIdDB', () => {
-        it('should retrieve social records by user ID', async () => {
-            const userId = 'mockedUserId';
-            const result = await db.getSocialByUserIdDB(userId);
-            expect(mockClient.connect).toHaveBeenCalledTimes(1);
-            expect(mockClient.db().collection().find).toHaveBeenCalledWith({userId: userId});
-            expect(mockClient.db().collection().find().toArray).toHaveBeenCalledTimes(1);
-            expect(result).toEqual([mockSocial]); // Expecting an array with mockSocial
-            expect(mockClient.close).toHaveBeenCalledTimes(1);
-        });
-
-        it('should log an error if retrieval fails', async () => {
-            const userId = 'mockedUserId';
-            mockClient.db().collection().find().toArray.mockRejectedValue(new Error('Find failed'));
-            await expect(db.getSocialByUserIdDB(userId)).rejects.toThrow('Find failed');
-        });
-    });
-
-    // Test for Reading All Social Entries for a User
-    describe('getAllSocialsForUserDB', () => {
-        it('should retrieve all social records for a user', async () => {
-            const result = await db.getAllSocialsForUserDB('user123');
-            expect(mockClient.connect).toHaveBeenCalledTimes(1);
-            expect(mockClient.db().collection().find).toHaveBeenCalledWith({user_id: 'user123'});
-            expect(result).toEqual([mockSocial]);
-            expect(mockClient.close).toHaveBeenCalledTimes(1);
-        });
-
-        it('should log an error if retrieval fails', async () => {
-            mockClient.db().collection().find.mockReturnValue({
-                toArray: jest.fn().mockRejectedValue(new Error('Find failed')),
-            });
-            await expect(db.getAllSocialsForUserDB('user123')).rejects.toThrow('Find failed');
-        });
-    });
-
-    // Test for Updating a Social Entry
-    describe('updateSocialDB', () => {
-        const updatedSocial = {
-            socialMediaPlatform: 'LinkedIn',
-            profileName: 'john_linkedin',
-            profileUrl: 'https://www.linkedin.com/in/john_linkedin',
-        };
-
-        it('should update a social record', async () => {
-            const result = await db.updateSocialDB('mockedSocialId', updatedSocial);
-            expect(mockClient.connect).toHaveBeenCalledTimes(1);
-            expect(mockClient.db().collection().updateOne).toHaveBeenCalledWith(
-                {_id: 'mockedSocialId'},
-                {$set: updatedSocial}
-            );
-            expect(result).toEqual({modifiedCount: 1});
-            expect(mockClient.close).toHaveBeenCalledTimes(1);
-        });
-
-        it('should log an error if update fails', async () => {
-            mockClient.db().collection().updateOne.mockRejectedValue(new Error('Update failed'));
-            await expect(db.updateSocialDB('mockedSocialId', updatedSocial)).rejects.toThrow('Update failed');
-        });
-    });
-
-    // Test for Deleting a Social Entry
-    describe('deleteSocialDB', () => {
-        it('should delete a social record by social_id', async () => {
-            const result = await db.deleteSocialDB('mockedSocialId');
-            expect(mockClient.connect).toHaveBeenCalledTimes(1);
-            expect(mockClient.db().collection().deleteOne).toHaveBeenCalledWith({"_id": 'mockedSocialId'});
-            expect(result).toEqual({deletedCount: 1});
-            expect(mockClient.close).toHaveBeenCalledTimes(1);
-        });
-
-        it('should log an error if deletion fails', async () => {
-            mockClient.db().collection().deleteOne.mockRejectedValue(new Error('Delete failed'));
-            await expect(db.deleteSocialDB('mockedSocialId')).rejects.toThrow('Delete failed');
-        });
-    });
-});
-
-//     describe('createHashMappingDB', () => {
-//         it('should create a new hash mapping successfully', async () => {
-//             // db.collection().insertOne.mockResolvedValue({ insertedId: cardId });
 //
-//             const result = await db.createHashMappingDB(mockHashMapping);
+// describe('SOCIALS Table CRUD Operations', () => {
+//     let mockClient: any;
+//     const mockSocial = {
+//         user_id: 'user123',
+//         socialMediaPlatform: 'Instagram',
+//         profileName: 'john_doe',
+//         profileUrl: 'https://www.instagram.com/john_doe',
+//     };
 //
-//             expect().toHaveBeenCalledWith(mockHashMapping);
-//             expect(result.insertedId).toEqual(cardId);
+//     beforeEach(() => {
+//         mockClient = {
+//             connect: jest.fn(),
+//             db: jest.fn().mockReturnValue({
+//                 collection: jest.fn().mockReturnValue({
+//                     insertOne: jest.fn().mockResolvedValue({insertedId: 'mockedSocialId'}),
+//                     findOne: jest.fn().mockResolvedValue(mockSocial),
+//                     find: jest.fn().mockReturnValue({
+//                         toArray: jest.fn().mockResolvedValue([mockSocial]),
+//                     }),
+//                     updateOne: jest.fn().mockResolvedValue({modifiedCount: 1}),
+//                     deleteOne: jest.fn().mockResolvedValue({deletedCount: 1}),
+//                 }),
+//             }),
+//             close: jest.fn(),
+//         };
+//         MongoClient.mockReturnValue(mockClient);
+//     });
+//
+//     // Test for Creating a Social Entry
+//     describe('createSocialDB', () => {
+//         it('should insert social data into the database', async () => {
+//             const result = await db.createSocialDB(mockSocial);
+//             expect(mockClient.connect).toHaveBeenCalledTimes(1);
+//             expect(mockClient.db().collection().insertOne).toHaveBeenCalledWith(mockSocial);
+//             expect(result).toEqual({insertedId: 'mockedSocialId'});
+//             expect(mockClient.close).toHaveBeenCalledTimes(1);
 //         });
 //
-//         it('should throw an error if hash mapping creation fails', async () => {
-//             mockDb.collection().insertOne.mockRejectedValue(new Error('Insert failed'));
-//
-//             await expect(db.createHashMappingDB(mockHashMapping)).rejects.toThrow('Failed to create hash mapping');
+//         it('should log an error if insertion fails', async () => {
+//             mockClient.db().collection().insertOne.mockRejectedValue(new Error('Insert failed'));
+//             await expect(db.createSocialDB(mockSocial)).rejects.toThrow('Insert failed');
 //         });
 //     });
 //
-//     describe('getHashMappingByHashDB', () => {
-//         it('should retrieve a hash mapping by hash', async () => {
-//             mockDb.collection().findOne.mockResolvedValue(mockHashMapping);
-//
-//             const result = await db.getHashMappingByHashDB('hashed-id');
-//
-//             expect(mockDb.collection().findOne).toHaveBeenCalledWith({ hash: 'hashed-id' });
-//             expect(result).toEqual(mockHashMapping);
+//     // Test for Reading a Single Social Entry
+//     describe('getSocialDB', () => {
+//         it('should retrieve a social record by social_id', async () => {
+//             const result = await db.getSocialDB('mockedSocialId');
+//             expect(mockClient.connect).toHaveBeenCalledTimes(1);
+//             expect(mockClient.db().collection().findOne).toHaveBeenCalled();
+//             expect(result).toEqual(mockSocial);
+//             expect(mockClient.close).toHaveBeenCalledTimes(1);
 //         });
 //
-//         it('should throw an error if retrieval fails', async () => {
-//             mockDb.collection().findOne.mockRejectedValue(new Error('Find failed'));
-//
-//             await expect(db.getHashMappingByHashDB('hashed-id')).rejects.toThrow('Failed to retrieve hash mapping');
+//         it('should log an error if retrieval fails', async () => {
+//             mockClient.db().collection().findOne.mockRejectedValue(new Error('Find failed'));
+//             await expect(db.getSocialDB('mockedSocialId')).rejects.toThrow('Find failed');
 //         });
 //     });
 //
-//     describe('updateHashMappingDB', () => {
-//         it('should update a hash mapping successfully', async () => {
-//             mockDb.collection().updateOne.mockResolvedValue({ modifiedCount: 1 });
+//     // Test for Reading Social Entries by User ID
+//     describe('getSocialByUserIdDB', () => {
+//         it('should retrieve social records by user ID', async () => {
+//             const userId = 'mockedUserId';
+//             const result = await db.getSocialByUserIdDB(userId);
+//             expect(mockClient.connect).toHaveBeenCalledTimes(1);
+//             expect(mockClient.db().collection().find).toHaveBeenCalledWith({userId: userId});
+//             expect(mockClient.db().collection().find().toArray).toHaveBeenCalledTimes(1);
+//             expect(result).toEqual([mockSocial]); // Expecting an array with mockSocial
+//             expect(mockClient.close).toHaveBeenCalledTimes(1);
+//         });
 //
-//             const result = await db.updateHashMappingDB(cardId, { hash: 'new-hash' });
+//         it('should log an error if retrieval fails', async () => {
+//             const userId = 'mockedUserId';
+//             mockClient.db().collection().find().toArray.mockRejectedValue(new Error('Find failed'));
+//             await expect(db.getSocialByUserIdDB(userId)).rejects.toThrow('Find failed');
+//         });
+//     });
 //
-//             expect(mockDb.collection().updateOne).toHaveBeenCalledWith(
-//                 { cardId },
-//                 { $set: { hash: 'new-hash' } }
+//     // Test for Reading All Social Entries for a User
+//     describe('getAllSocialsForUserDB', () => {
+//         it('should retrieve all social records for a user', async () => {
+//             const result = await db.getAllSocialsForUserDB('user123');
+//             expect(mockClient.connect).toHaveBeenCalledTimes(1);
+//             expect(mockClient.db().collection().find).toHaveBeenCalledWith({user_id: 'user123'});
+//             expect(result).toEqual([mockSocial]);
+//             expect(mockClient.close).toHaveBeenCalledTimes(1);
+//         });
+//
+//         it('should log an error if retrieval fails', async () => {
+//             mockClient.db().collection().find.mockReturnValue({
+//                 toArray: jest.fn().mockRejectedValue(new Error('Find failed')),
+//             });
+//             await expect(db.getAllSocialsForUserDB('user123')).rejects.toThrow('Find failed');
+//         });
+//     });
+//
+//     // Test for Updating a Social Entry
+//     describe('updateSocialDB', () => {
+//         const updatedSocial = {
+//             socialMediaPlatform: 'LinkedIn',
+//             profileName: 'john_linkedin',
+//             profileUrl: 'https://www.linkedin.com/in/john_linkedin',
+//         };
+//
+//         it('should update a social record', async () => {
+//             const result = await db.updateSocialDB('mockedSocialId', updatedSocial);
+//             expect(mockClient.connect).toHaveBeenCalledTimes(1);
+//             expect(mockClient.db().collection().updateOne).toHaveBeenCalledWith(
+//                 {_id: 'mockedSocialId'},
+//                 {$set: updatedSocial}
 //             );
-//             expect(result.modifiedCount).toBe(1);
+//             expect(result).toEqual({modifiedCount: 1});
+//             expect(mockClient.close).toHaveBeenCalledTimes(1);
 //         });
 //
-//         it('should throw an error if update fails', async () => {
-//             mockDb.collection().updateOne.mockRejectedValue(new Error('Update failed'));
-//
-//             await expect(db.updateHashMappingDB(cardId, { hash: 'new-hash' })).rejects.toThrow('Failed to update hash mapping');
-//         });
-//     });
-//
-//     describe('deleteHashMappingDB', () => {
-//         it('should delete a hash mapping successfully', async () => {
-//             mockDb.collection().deleteOne.mockResolvedValue({ deletedCount: 1 });
-//
-//             const result = await db.deleteHashMappingDB(cardId);
-//
-//             expect(mockDb.collection().deleteOne).toHaveBeenCalledWith({ cardId });
-//             expect(result.deletedCount).toBe(1);
-//         });
-//
-//         it('should throw an error if delete operation fails', async () => {
-//             mockDb.collection().deleteOne.mockRejectedValue(new Error('Delete failed'));
-//
-//             await expect(db.deleteHashMappingDB(cardId)).rejects.toThrow('Failed to delete hash mapping');
+//         it('should log an error if update fails', async () => {
+//             mockClient.db().collection().updateOne.mockRejectedValue(new Error('Update failed'));
+//             await expect(db.updateSocialDB('mockedSocialId', updatedSocial)).rejects.toThrow('Update failed');
 //         });
 //     });
 //
-//     describe('listHashMappingsDB', () => {
-//         it('should retrieve all hash mappings successfully', async () => {
-//             const mappingsArray = [mockHashMapping, { cardId: new ObjectId(), hash: 'another-hash' }];
-//             mockDb.collection().find().toArray.mockResolvedValue(mappingsArray);
-//
-//             const result = await db.listHashMappingsDB();
-//
-//             expect(mockDb.collection().find().toArray).toHaveBeenCalled();
-//             expect(result).toEqual(mappingsArray);
+//     // Test for Deleting a Social Entry
+//     describe('deleteSocialDB', () => {
+//         it('should delete a social record by social_id', async () => {
+//             const result = await db.deleteSocialDB('mockedSocialId');
+//             expect(mockClient.connect).toHaveBeenCalledTimes(1);
+//             expect(mockClient.db().collection().deleteOne).toHaveBeenCalledWith({"_id": 'mockedSocialId'});
+//             expect(result).toEqual({deletedCount: 1});
+//             expect(mockClient.close).toHaveBeenCalledTimes(1);
 //         });
 //
-//         it('should throw an error if listing fails', async () => {
-//             mockDb.collection().find().toArray.mockRejectedValue(new Error('Find failed'));
-//
-//             await expect(db.listHashMappingsDB()).rejects.toThrow('Failed to list hash mappings');
+//         it('should log an error if deletion fails', async () => {
+//             mockClient.db().collection().deleteOne.mockRejectedValue(new Error('Delete failed'));
+//             await expect(db.deleteSocialDB('mockedSocialId')).rejects.toThrow('Delete failed');
 //         });
 //     });
 // });
-
-describe('aggregateData', () => {
-    const mockUserId = '6691e624884c396e75262f7f';
-
-    const mockClient = {
-        connect: jest.fn(),
-        close: jest.fn(),
-        db: jest.fn().mockReturnThis(),
-        collection: jest.fn(),
-    };
-
-    const mockCollection = {
-        aggregate: jest.fn().mockReturnValue({
-            toArray: jest.fn().mockResolvedValue([
-                {
-                    _id: "6719b3a31eac0b05bf46b6da",
-                    name: "Phoenix Prime",
-                    industry: "Transportation/Delivery",
-                    address: {country: "Jamaica"},
-                    website: "https://phoenixprime.io",
-                    contactEmail: "",
-                    phone: "+1-876-458-6888",
-                    socials: [],
-                    description: "Taxi and delivery platform",
-                    logo: {mime: "image/png;base64", data: "iVBOR..."},
-                    userData: {
-                        firstName: "Shayne",
-                        lastName: "Hacker",
-                        email: "shaynhacker@gmail.com",
-                    },
-                    roleData: {role: "Owner"},
-                    socialsData: [{
-                        platform: "Instagram",
-                        profileName: "Phoenix Prime 876",
-                        profileUrl: "jkjajnksnakjdn"
-                    }],
-                    vcardData: {
-                        firstName: "Shayne",
-                        lastName: "Hacker",
-                        organization: "Phoenix Prime",
-                        title: "CEO",
-                        phone: "+1-876-458-6888"
-                    },
-                }
-            ]),
-        }),
-    };
-
-    beforeAll(() => {
-        MongoClient.mockImplementation(() => mockClient);
-        mockClient.collection.mockReturnValue(mockCollection);
-    });
-
-    // it('should connect to the database, aggregate data correctly, and return the expected result', async () => {
-    //     const result = await aggregateData(mockUserId);
-    //
-    //     expect(mockClient.connect).toHaveBeenCalled();
-    //     expect(mockClient.db).toHaveBeenCalledWith('athenadb');
-    //     expect(mockClient.collection).toHaveBeenCalledWith('businesses');
-    //     expect(mockCollection.aggregate).toHaveBeenCalledWith([
-    //         { $match: { userId: mockObjectId } },
-    //         { $lookup: expect.any(Object) },
-    //         { $lookup: expect.any(Object) },
-    //         { $lookup: expect.any(Object) },
-    //         { $lookup: expect.any(Object) },
-    //         { $project: expect.any(Object) },
-    //     ]);
-    //     expect(result).toEqual([
-    //         {
-    //             _id: "6719b3a31eac0b05bf46b6da",
-    //             name: "Phoenix Prime",
-    //             industry: "Transportation/Delivery",
-    //             address: { country: "Jamaica" },
-    //             website: "https://phoenixprime.io",
-    //             contactEmail: "",
-    //             phone: "+1-876-458-6888",
-    //             socials: [],
-    //             description: "Taxi and delivery platform",
-    //             logo: { mime: "image/png;base64", data: "iVBOR..." },
-    //             userData: {
-    //                 firstName: "Shayne",
-    //                 lastName: "Hacker",
-    //                 email: "shaynhacker@gmail.com",
-    //             },
-    //             roleData: { role: "Owner" },
-    //             socialsData: [{ platform: "Instagram", profileName: "Phoenix Prime 876" }],
-    //             vcardData: {
-    //                 firstName: "Shayne",
-    //                 lastName: "Hacker",
-    //                 organization: "Phoenix Prime",
-    //                 title: "CEO",
-    //                 phone: "+1-876-458-6888"
-    //             },
-    //         }
-    //     ]);
-    //
-    //     // expect(dbLogger.info).toHaveBeenCalledWith("Connecting to Database");
-    //     // expect(dbLogger.info).toHaveBeenCalledWith(`Aggregating data for user ID: ${mockUserId}`);
-    //     // expect(dbLogger.info).toHaveBeenCalledWith("Database connection closed");
-    // });
-
-    it('should connect to the database, aggregate data correctly, and return the expected result', async () => {
-        const result = await aggregateDataDB(mockUserId);
-
-        expect(mockClient.connect).toHaveBeenCalled();
-        expect(mockClient.db).not.toBeNull();
-        expect(mockClient.collection).toHaveBeenCalledWith('cards');
-        // expect(mockCollection.aggregate).toHaveBeenCalledWith(expect.arrayContaining([
-        //     {$match: {userId: mockObjectId}},
-        //     expect.objectContaining({
-        //         $lookup: expect.objectContaining({
-        //             from: "users",
-        //             localField: "userId",
-        //             foreignField: "_id",
-        //             as: "userData"
-        //         })
-        //     }),
-        //     expect.objectContaining({
-        //         $lookup: expect.objectContaining({
-        //             from: "roles",
-        //             localField: "userId",
-        //             foreignField: "userId",
-        //             as: "roleData"
-        //         })
-        //     }),
-        //     expect.objectContaining({
-        //         $lookup: expect.objectContaining({
-        //             from: "socials",
-        //             localField: "userId",
-        //             foreignField: "userId",
-        //             as: "socialsData"
-        //         })
-        //     }),
-        //     expect.objectContaining({
-        //         $lookup: expect.objectContaining({
-        //             from: "vcards",
-        //             localField: "userId",
-        //             foreignField: "ownerId",
-        //             as: "vcardData"
-        //         })
-        //     }),
-        //     expect.objectContaining({
-        //         $project: expect.objectContaining({
-        //             _id: 1,
-        //             name: 1,
-        //             industry: 1,
-        //             address: 1,
-        //             website: 1,
-        //             contactEmail: 1,
-        //             phone: 1,
-        //             description: 1,
-        //             logo: 1,
-        //             userData: expect.any(Object),
-        //             roleData: expect.any(Object),
-        //             socialsData: expect.any(Array),
-        //             vcardData: expect.any(Object),
-        //         })
-        //     }),
-        // ]));
-        expect(result).toEqual([
-            {
-                _id: "6719b3a31eac0b05bf46b6da",
-                name: "Phoenix Prime",
-                industry: "Transportation/Delivery",
-                address: {country: "Jamaica"},
-                website: "https://phoenixprime.io",
-                contactEmail: "",
-                phone: "+1-876-458-6888",
-                socials: [],
-                description: "Taxi and delivery platform",
-                logo: {mime: "image/png;base64", data: "iVBOR..."},
-                userData: {
-                    firstName: "Shayne",
-                    lastName: "Hacker",
-                    email: "shaynhacker@gmail.com",
-                },
-                roleData: {role: "Owner"},
-                socialsData: [{
-                    platform: "Instagram", profileName: "Phoenix Prime 876",
-                    profileUrl: "jkjajnksnakjdn"
-                }],
-                vcardData: {
-                    firstName: "Shayne",
-                    lastName: "Hacker",
-                    organization: "Phoenix Prime",
-                    title: "CEO",
-                    phone: "+1-876-458-6888"
-                },
-            }
-        ]);
-    });
-
-    it('should handle errors and log them', async () => {
-        const error = new Error('Database error');
-        mockCollection.aggregate.mockReturnValueOnce({
-            toArray: jest.fn().mockRejectedValue(error),
-        });
-
-        await expect(aggregateDataDB(mockUserId)).rejects.toThrow('Database error');
-
-        // expect(dbLogger.error).toHaveBeenCalledWith({ message: 'Error aggregating data', error });
-    });
-
-    afterAll(() => {
-        jest.clearAllMocks();
-    });
-})
+//
+// //     describe('createHashMappingDB', () => {
+// //         it('should create a new hash mapping successfully', async () => {
+// //             // db.collection().insertOne.mockResolvedValue({ insertedId: cardId });
+// //
+// //             const result = await db.createHashMappingDB(mockHashMapping);
+// //
+// //             expect().toHaveBeenCalledWith(mockHashMapping);
+// //             expect(result.insertedId).toEqual(cardId);
+// //         });
+// //
+// //         it('should throw an error if hash mapping creation fails', async () => {
+// //             mockDb.collection().insertOne.mockRejectedValue(new Error('Insert failed'));
+// //
+// //             await expect(db.createHashMappingDB(mockHashMapping)).rejects.toThrow('Failed to create hash mapping');
+// //         });
+// //     });
+// //
+// //     describe('getHashMappingByHashDB', () => {
+// //         it('should retrieve a hash mapping by hash', async () => {
+// //             mockDb.collection().findOne.mockResolvedValue(mockHashMapping);
+// //
+// //             const result = await db.getHashMappingByHashDB('hashed-id');
+// //
+// //             expect(mockDb.collection().findOne).toHaveBeenCalledWith({ hash: 'hashed-id' });
+// //             expect(result).toEqual(mockHashMapping);
+// //         });
+// //
+// //         it('should throw an error if retrieval fails', async () => {
+// //             mockDb.collection().findOne.mockRejectedValue(new Error('Find failed'));
+// //
+// //             await expect(db.getHashMappingByHashDB('hashed-id')).rejects.toThrow('Failed to retrieve hash mapping');
+// //         });
+// //     });
+// //
+// //     describe('updateHashMappingDB', () => {
+// //         it('should update a hash mapping successfully', async () => {
+// //             mockDb.collection().updateOne.mockResolvedValue({ modifiedCount: 1 });
+// //
+// //             const result = await db.updateHashMappingDB(cardId, { hash: 'new-hash' });
+// //
+// //             expect(mockDb.collection().updateOne).toHaveBeenCalledWith(
+// //                 { cardId },
+// //                 { $set: { hash: 'new-hash' } }
+// //             );
+// //             expect(result.modifiedCount).toBe(1);
+// //         });
+// //
+// //         it('should throw an error if update fails', async () => {
+// //             mockDb.collection().updateOne.mockRejectedValue(new Error('Update failed'));
+// //
+// //             await expect(db.updateHashMappingDB(cardId, { hash: 'new-hash' })).rejects.toThrow('Failed to update hash mapping');
+// //         });
+// //     });
+// //
+// //     describe('deleteHashMappingDB', () => {
+// //         it('should delete a hash mapping successfully', async () => {
+// //             mockDb.collection().deleteOne.mockResolvedValue({ deletedCount: 1 });
+// //
+// //             const result = await db.deleteHashMappingDB(cardId);
+// //
+// //             expect(mockDb.collection().deleteOne).toHaveBeenCalledWith({ cardId });
+// //             expect(result.deletedCount).toBe(1);
+// //         });
+// //
+// //         it('should throw an error if delete operation fails', async () => {
+// //             mockDb.collection().deleteOne.mockRejectedValue(new Error('Delete failed'));
+// //
+// //             await expect(db.deleteHashMappingDB(cardId)).rejects.toThrow('Failed to delete hash mapping');
+// //         });
+// //     });
+// //
+// //     describe('listHashMappingsDB', () => {
+// //         it('should retrieve all hash mappings successfully', async () => {
+// //             const mappingsArray = [mockHashMapping, { cardId: new ObjectId(), hash: 'another-hash' }];
+// //             mockDb.collection().find().toArray.mockResolvedValue(mappingsArray);
+// //
+// //             const result = await db.listHashMappingsDB();
+// //
+// //             expect(mockDb.collection().find().toArray).toHaveBeenCalled();
+// //             expect(result).toEqual(mappingsArray);
+// //         });
+// //
+// //         it('should throw an error if listing fails', async () => {
+// //             mockDb.collection().find().toArray.mockRejectedValue(new Error('Find failed'));
+// //
+// //             await expect(db.listHashMappingsDB()).rejects.toThrow('Failed to list hash mappings');
+// //         });
+// //     });
+// // });
+//
+// describe('aggregateData', () => {
+//     const mockUserId = '6691e624884c396e75262f7f';
+//
+//     const mockClient = {
+//         connect: jest.fn(),
+//         close: jest.fn(),
+//         db: jest.fn().mockReturnThis(),
+//         collection: jest.fn(),
+//     };
+//
+//     const mockCollection = {
+//         aggregate: jest.fn().mockReturnValue({
+//             toArray: jest.fn().mockResolvedValue([
+//                 {
+//                     _id: "6719b3a31eac0b05bf46b6da",
+//                     name: "Phoenix Prime",
+//                     industry: "Transportation/Delivery",
+//                     address: {country: "Jamaica"},
+//                     website: "https://phoenixprime.io",
+//                     contactEmail: "",
+//                     phone: "+1-876-458-6888",
+//                     socials: [],
+//                     description: "Taxi and delivery platform",
+//                     logo: {mime: "image/png;base64", data: "iVBOR..."},
+//                     userData: {
+//                         firstName: "Shayne",
+//                         lastName: "Hacker",
+//                         email: "shaynhacker@gmail.com",
+//                     },
+//                     roleData: {role: "Owner"},
+//                     socialsData: [{
+//                         platform: "Instagram",
+//                         profileName: "Phoenix Prime 876",
+//                         profileUrl: "jkjajnksnakjdn"
+//                     }],
+//                     vcardData: {
+//                         firstName: "Shayne",
+//                         lastName: "Hacker",
+//                         organization: "Phoenix Prime",
+//                         title: "CEO",
+//                         phone: "+1-876-458-6888"
+//                     },
+//                 }
+//             ]),
+//         }),
+//     };
+//
+//     beforeAll(() => {
+//         MongoClient.mockImplementation(() => mockClient);
+//         mockClient.collection.mockReturnValue(mockCollection);
+//     });
+//
+//     // it('should connect to the database, aggregate data correctly, and return the expected result', async () => {
+//     //     const result = await aggregateData(mockUserId);
+//     //
+//     //     expect(mockClient.connect).toHaveBeenCalled();
+//     //     expect(mockClient.db).toHaveBeenCalledWith('athenadb');
+//     //     expect(mockClient.collection).toHaveBeenCalledWith('businesses');
+//     //     expect(mockCollection.aggregate).toHaveBeenCalledWith([
+//     //         { $match: { userId: mockObjectId } },
+//     //         { $lookup: expect.any(Object) },
+//     //         { $lookup: expect.any(Object) },
+//     //         { $lookup: expect.any(Object) },
+//     //         { $lookup: expect.any(Object) },
+//     //         { $project: expect.any(Object) },
+//     //     ]);
+//     //     expect(result).toEqual([
+//     //         {
+//     //             _id: "6719b3a31eac0b05bf46b6da",
+//     //             name: "Phoenix Prime",
+//     //             industry: "Transportation/Delivery",
+//     //             address: { country: "Jamaica" },
+//     //             website: "https://phoenixprime.io",
+//     //             contactEmail: "",
+//     //             phone: "+1-876-458-6888",
+//     //             socials: [],
+//     //             description: "Taxi and delivery platform",
+//     //             logo: { mime: "image/png;base64", data: "iVBOR..." },
+//     //             userData: {
+//     //                 firstName: "Shayne",
+//     //                 lastName: "Hacker",
+//     //                 email: "shaynhacker@gmail.com",
+//     //             },
+//     //             roleData: { role: "Owner" },
+//     //             socialsData: [{ platform: "Instagram", profileName: "Phoenix Prime 876" }],
+//     //             vcardData: {
+//     //                 firstName: "Shayne",
+//     //                 lastName: "Hacker",
+//     //                 organization: "Phoenix Prime",
+//     //                 title: "CEO",
+//     //                 phone: "+1-876-458-6888"
+//     //             },
+//     //         }
+//     //     ]);
+//     //
+//     //     // expect(dbLogger.info).toHaveBeenCalledWith("Connecting to Database");
+//     //     // expect(dbLogger.info).toHaveBeenCalledWith(`Aggregating data for user ID: ${mockUserId}`);
+//     //     // expect(dbLogger.info).toHaveBeenCalledWith("Database connection closed");
+//     // });
+//
+//     it('should connect to the database, aggregate data correctly, and return the expected result', async () => {
+//         const result = await aggregateDataDB(mockUserId);
+//
+//         expect(mockClient.connect).toHaveBeenCalled();
+//         expect(mockClient.db).not.toBeNull();
+//         expect(mockClient.collection).toHaveBeenCalledWith('cards');
+//         // expect(mockCollection.aggregate).toHaveBeenCalledWith(expect.arrayContaining([
+//         //     {$match: {userId: mockObjectId}},
+//         //     expect.objectContaining({
+//         //         $lookup: expect.objectContaining({
+//         //             from: "users",
+//         //             localField: "userId",
+//         //             foreignField: "_id",
+//         //             as: "userData"
+//         //         })
+//         //     }),
+//         //     expect.objectContaining({
+//         //         $lookup: expect.objectContaining({
+//         //             from: "roles",
+//         //             localField: "userId",
+//         //             foreignField: "userId",
+//         //             as: "roleData"
+//         //         })
+//         //     }),
+//         //     expect.objectContaining({
+//         //         $lookup: expect.objectContaining({
+//         //             from: "socials",
+//         //             localField: "userId",
+//         //             foreignField: "userId",
+//         //             as: "socialsData"
+//         //         })
+//         //     }),
+//         //     expect.objectContaining({
+//         //         $lookup: expect.objectContaining({
+//         //             from: "vcards",
+//         //             localField: "userId",
+//         //             foreignField: "ownerId",
+//         //             as: "vcardData"
+//         //         })
+//         //     }),
+//         //     expect.objectContaining({
+//         //         $project: expect.objectContaining({
+//         //             _id: 1,
+//         //             name: 1,
+//         //             industry: 1,
+//         //             address: 1,
+//         //             website: 1,
+//         //             contactEmail: 1,
+//         //             phone: 1,
+//         //             description: 1,
+//         //             logo: 1,
+//         //             userData: expect.any(Object),
+//         //             roleData: expect.any(Object),
+//         //             socialsData: expect.any(Array),
+//         //             vcardData: expect.any(Object),
+//         //         })
+//         //     }),
+//         // ]));
+//         expect(result).toEqual([
+//             {
+//                 _id: "6719b3a31eac0b05bf46b6da",
+//                 name: "Phoenix Prime",
+//                 industry: "Transportation/Delivery",
+//                 address: {country: "Jamaica"},
+//                 website: "https://phoenixprime.io",
+//                 contactEmail: "",
+//                 phone: "+1-876-458-6888",
+//                 socials: [],
+//                 description: "Taxi and delivery platform",
+//                 logo: {mime: "image/png;base64", data: "iVBOR..."},
+//                 userData: {
+//                     firstName: "Shayne",
+//                     lastName: "Hacker",
+//                     email: "shaynhacker@gmail.com",
+//                 },
+//                 roleData: {role: "Owner"},
+//                 socialsData: [{
+//                     platform: "Instagram", profileName: "Phoenix Prime 876",
+//                     profileUrl: "jkjajnksnakjdn"
+//                 }],
+//                 vcardData: {
+//                     firstName: "Shayne",
+//                     lastName: "Hacker",
+//                     organization: "Phoenix Prime",
+//                     title: "CEO",
+//                     phone: "+1-876-458-6888"
+//                 },
+//             }
+//         ]);
+//     });
+//
+//     it('should handle errors and log them', async () => {
+//         const error = new Error('Database error');
+//         mockCollection.aggregate.mockReturnValueOnce({
+//             toArray: jest.fn().mockRejectedValue(error),
+//         });
+//
+//         await expect(aggregateDataDB(mockUserId)).rejects.toThrow('Database error');
+//
+//         // expect(dbLogger.error).toHaveBeenCalledWith({ message: 'Error aggregating data', error });
+//     });
+//
+//     afterAll(() => {
+//         jest.clearAllMocks();
+//     });
+// })

@@ -6,7 +6,34 @@ import {getUserByEmailDB, updateUserDB} from "../../database";
 
 const passLogger = logger.child({context: 'passService'});
 
-// POST /api/login
+
+/**
+ * Authentication service module handling user authentication and password management.
+ * @module authService
+ * @description Provides endpoints for:
+ * - User login
+ * - Password setting and reset
+ * - Temporary password generation and verification
+ */
+
+/**
+ * Authenticates a user and returns a JWT token.
+ * @async
+ * @function loginUser
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @param {string} req.body.email - User's email address
+ * @param {string} req.body.password - User's password
+ * @returns {Promise<Response>} JSON response with JWT token and user data
+ * @throws {404} If user not found
+ * @throws {400} If user hasn't set password (firstLogin state)
+ * @throws {401} If password is incorrect
+ * @throws {500} If server error occurs
+ * @example
+ * // POST /api/login
+ * // Request body: { email: "user@example.com", password: "securepassword123" }
+ * // Response: { success: true, token: "jwt.token.xyz", user: { ... } }
+ */
 export const loginUser = async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body;
@@ -42,14 +69,29 @@ export const loginUser = async (req: Request, res: Response) => {
             },
         });
 
-    } catch (error) {
+    } catch (error: any) {
         passLogger.error('Error logging in user', { error });
         res.status(500).json({ success: false, message: 'Server error during login', error });
     }
 };
 
-
-// POST /api/set-password
+/**
+ * Sets a new password for a first-time user.
+ * @async
+ * @function setNewPassword
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @param {string} req.body.email - User's email address
+ * @param {string} req.body.newPassword - New password to set
+ * @returns {Promise<Response>} JSON response with JWT token and user data
+ * @throws {404} If user not found
+ * @throws {400} If password already set or user not eligible
+ * @throws {500} If server error occurs
+ * @example
+ * // POST /api/set-password
+ * // Request body: { email: "user@example.com", newPassword: "newsecurepassword123" }
+ * // Response: { success: true, token: "jwt.token.xyz", user: { ... } }
+ */
 export const setNewPassword = async (req: Request, res: Response) => {
     try {
         const {email, newPassword} = req.body;
@@ -88,7 +130,24 @@ export const setNewPassword = async (req: Request, res: Response) => {
     }
 };
 
-// POST /api/verify-temp-password
+/**
+ * Verifies a temporary password for password reset flow.
+ * @async
+ * @function verifyTempPassword
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @param {string} req.body.email - User's email address
+ * @param {string} req.body.tempPassword - Temporary password to verify
+ * @returns {Promise<Response>} JSON response with verification status
+ * @throws {404} If user not found
+ * @throws {400} If user already completed first login
+ * @throws {401} If temporary password is invalid
+ * @throws {500} If server error occurs
+ * @example
+ * // POST /api/verify-temp-password
+ * // Request body: { email: "user@example.com", tempPassword: "temporary123" }
+ * // Response: { success: true, message: "Temporary password verified" }
+ */
 export const verifyTempPassword = async (req: Request, res: Response) => {
     try {
         const {email, tempPassword} = req.body;
@@ -116,12 +175,27 @@ export const verifyTempPassword = async (req: Request, res: Response) => {
     }
 };
 
-// POST /api/generate-temp-password
+/**
+ * Generates and emails a temporary password for password reset.
+ * @async
+ * @function generateTempPassword
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @param {string} req.body.email - User's email address
+ * @returns {Promise<Response>} JSON response with generation status
+ * @throws {404} If user not found
+ * @throws {500} If server error occurs
+ * @example
+ * // POST /api/generate-temp-password
+ * // Request body: { email: "user@example.com" }
+ * // Response: { success: true, message: "Temporary password generated and sent" }
+ */
 export const generateTempPassword = async (req: Request, res: Response) => {
     try {
         const result = await utils.generateTempPassword(req.body.email);
         if (result) {
-            res.status(200).json({...result, success: true});
+            const {hash, tempPassword} = result
+            res.status(200).json({hash: hash, tempPassword: tempPassword, success: true});
         } else {
             passLogger.warn('Failed to generate temp password');
             res.status(404).json({success: false, message: 'User not found or generation failed'});

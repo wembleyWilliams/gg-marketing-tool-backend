@@ -1,90 +1,151 @@
-import {getVCardByIdDB} from "../database";
+/**
+ * @file vCard generation utility
+ * @module utils/vCardGenerator
+ * @description Generates vCard (VCF) contact information from database records
+ */
 
+import { getVCardByIdDB } from "../database";
 const vCardsJS = require('vcards-js');
 
-const generateContactCard = async (id: string) => {
-let data : any = await getVCardByIdDB(id).then((res: any)=>{return res})
-        // create a new vCard
-        let vCard = vCardsJS();
+/**
+ * Generates a vCard (VCF format) contact card from database record
+ * @async
+ * @function generateContactCard
+ * @param {string} id - The unique identifier of the contact in the database
+ * @returns {Promise<string>} Formatted vCard string in VCF format
+ * @throws {Error} May throw errors if:
+ *                 - Database record is not found
+ *                 - Required fields are missing
+ *                 - vCard generation fails
+ *
+ * @example
+ * try {
+ *   const vCardString = await generateContactCard('contact123');
+ *   // Use vCardString to download or share contact
+ * } catch (error) {
+ *   console.error('Failed to generate vCard:', error);
+ * }
+ */
+const generateContactCard = async (id: string): Promise<string> => {
+    // Retrieve contact data from database
+    let data: any = await getVCardByIdDB(id).then((res: any) => res);
 
-        // set properties
-        vCard.uid = data.uid;
-
-    if (data.birthday) {
-        vCard.birthday = new Date(data.birthday);
+    if (!data) {
+        throw new Error('Contact not found in database');
     }
 
-    // vCard.birthday = data.birthday;
-        vCard.cellPhone = data.cellPhone;
-        vCard.pagerPhone = data.pagerPhone;
-        vCard.email = data.email;
-        vCard.workEmail = data.workEmail;
-        vCard.firstName = data.firstName;
-        vCard.formattedName = data.formattedName;
-        vCard.gender = data.gender;
+    // Create new vCard instance
+    let vCard = vCardsJS();
 
-        if (data.homeAddress) {
-            vCard.homeAddress.label = data.homeAddress.label;
-            vCard.homeAddress.street = data.homeAddress.street;
-            vCard.homeAddress.city = data.homeAddress.city;
-            vCard.homeAddress.stateProvince = data.homeAddress.stateProvince;
-            vCard.homeAddress.postalCode = data.homeAddress.postalCode;
-            vCard.homeAddress.countryRegion = data.homeAddress.countryRegion;
+    // Set basic contact information
+    vCard.uid = data.uid;
+    vCard.firstName = data.firstName;
+    vCard.lastName = data.lastName;
+    vCard.middleName = data.middleName;
+    vCard.formattedName = data.formattedName;
+    vCard.namePrefix = data.namePrefix;
+    vCard.nameSuffix = data.nameSuffix;
+    vCard.nickname = data.nickname;
+    vCard.gender = data.gender;
+
+    // Set date of birth if available
+    if (data.birthday) {
+        const parsedDate = new Date(`${data.birthday}T00:00:00Z`);
+        if (!isNaN(parsedDate.getTime())) {
+            vCard.birthday = parsedDate;
+        } else {
+            console.warn(`Invalid birthday format: ${data.birthday}`);
         }
+    }
 
-        vCard.homePhone = data.homePhone;
-        vCard.homeFax = data.homeFax;
-        vCard.lastName = data.lastName;
 
-        if (data.logo) {
-            vCard.logo.embedFromString(`${data.logo.url}`,'image/png')
+    // Set contact methods
+    vCard.cellPhone = data.cellPhone;
+    vCard.pagerPhone = data.pagerPhone;
+    vCard.homePhone = data.homePhone;
+    vCard.homeFax = data.homeFax;
+    vCard.workPhone = data.workPhone;
+    vCard.workFax = data.workFax;
+
+    // Set email addresses
+    vCard.email = data.email;
+    vCard.workEmail = data.workEmail;
+
+    // Set organization information
+    vCard.organization = data.organization;
+    vCard.role = data.role;
+    vCard.title = data.title;
+
+    // Set URLs
+    vCard.url = data.url;
+    vCard.workUrl = data.workUrl;
+    vCard.source = data.source;
+
+    // Set notes
+    vCard.note = data.note;
+
+    // Set home address if available
+    if (data.homeAddress) {
+        vCard.homeAddress = {
+            label: data.homeAddress.label,
+            street: data.homeAddress.street,
+            city: data.homeAddress.city,
+            stateProvince: data.homeAddress.stateProvince,
+            postalCode: data.homeAddress.postalCode,
+            countryRegion: data.homeAddress.countryRegion
+        };
+    }
+
+    // Set work address if available
+    if (data.workAddress) {
+        vCard.workAddress = {
+            label: data.workAddress.label,
+            street: data.workAddress.street,
+            city: data.workAddress.city,
+            stateProvince: data.workAddress.stateProvince,
+            postalCode: data.workAddress.postalCode,
+            countryRegion: data.workAddress.countryRegion
+        };
+    }
+
+    // Set social media URLs if available
+    if (data.socialUrls) {
+        vCard.socialUrls = {
+            facebook: data.socialUrls.facebook,
+            linkedIn: data.socialUrls.linkedIn,
+            twitter: data.socialUrls.twitter,
+            flickr: data.socialUrls.flickr
+        };
+    }
+
+    // Set logo if available
+    if (data.logo) {
+        try {
+            vCard.logo.embedFromString(`${data.logo.url}`, 'image/png');
             vCard.logo.mediaType = data.logo.mediaType;
             vCard.logo.base64 = data.logo.base64;
+        } catch (error) {
+            console.warn('Failed to embed logo:', error);
         }
+    }
 
-        vCard.middleName = data.middleName;
-        vCard.namePrefix = data.namePrefix;
-        vCard.nameSuffix = data.nameSuffix;
-        vCard.nickname = data.nickname;
-        vCard.note = data.note;
-        vCard.organization = data.organization;
-
-        if (data.photo) {
-            vCard.photo.embedFromString(`${data.logo.url}`, "image/png")
+    // Set photo if available
+    if (data.photo) {
+        try {
+            vCard.photo.embedFromString(`${data.photo.url}`, "image/png");
             vCard.photo.mediaType = data.photo.mediaType;
             vCard.photo.base64 = data.photo.base64;
+        } catch (error) {
+            console.warn('Failed to embed photo:', error);
         }
+    }
 
-        vCard.role = data.role;
+    // Set vCard version and type
+    vCard.version = data.version || '3.0';
+    vCard.isOrganization = true;
 
-        if (data.socialUrls) {
-            vCard.socialUrls.facebook = data.socialUrls.facebook;
-            vCard.socialUrls.linkedIn = data.socialUrls.linkedIn;
-            vCard.socialUrls.twitter = data.socialUrls.twitter;
-            vCard.socialUrls.flickr = data.socialUrls.flickr;
-        }
+    // Return formatted vCard string
+    return vCard.getFormattedString();
+};
 
-        vCard.source = data.source;
-        vCard.title = data.title;
-        vCard.url = data.url;
-        vCard.workUrl = data.workUrl;
-
-        if (data.workAddress) {
-            vCard.workAddress.label = data.workAddress.label;
-            vCard.workAddress.street = data.workAddress.street;
-            vCard.workAddress.city = data.workAddress.city;
-            vCard.workAddress.stateProvince = data.workAddress.stateProvince;
-            vCard.workAddress.postalCode = data.workAddress.postalCode;
-            vCard.workAddress.countryRegion = data.workAddress.countryRegion;
-        }
-
-        vCard.workPhone = data.workPhone;
-        vCard.workFax = data.workFax;
-        vCard.version = data.version;
-        vCard.isOrganiztion = true;
-        return vCard.getFormattedString();
-
-
-}
-
-export default generateContactCard
+export default generateContactCard;

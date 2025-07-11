@@ -1,179 +1,167 @@
 import request from 'supertest';
 import express from 'express';
-import {createVCard, getVCard, updateVCard, deleteVCard} from '../index';
-import {createVCardDB, deleteVCardDB, updateVCardDB} from '../../../database';
+import {createVCard, deleteVCard, getVCard, updateVCard} from '../index'; // adjust path
 import generateContactCard from '../../../utils/generateContactCard';
-
-
-jest.mock('../../../database');
-jest.mock('../../../utils/generateContactCard');
-
-jest.mock('../../../logger/logger', () => ({
-    child: jest.fn(() => ({
-        error: jest.fn(),
-    })),
-}));
+import {createVCardDB, updateVCardDB, deleteVCardDB, getCardHashMappingByIdDB} from '../../../database';
 
 const app = express();
 app.use(express.json());
-app.get('/vcard', getVCard);
-app.put('/vcard', updateVCard);
-app.post('/vcard', createVCard);
-app.delete('/vcard', deleteVCard);
+app.post('/vcard/get', getVCard);
+app.post('/vcard/create', createVCard);
+app.put('/vcard/update', updateVCard);
+app.delete('/vcard/delete', deleteVCard);
 
-describe('vCard Service', () => {
-    const mockVCardData = {
-        uid: "123456",
-        birthday: "1998-01-29",
-        cellPhone: "+6088441994",
-        pagerPhone: "",
-        email: "wembleywilliams@gmail.com",
-        workEmail: "goodgraphicsja@gmail.com",
-        firstName: "Wembley",
-        formattedName: "Wembley Williams",
-        gender: "male",
-        homeAddress: {
-            label: "Home",
-            street: "521 Lincoln Street",
-            city: "Mauston",
-            stateProvince: "WI",
-            postalCode: "53948",
-            countryRegion: "USA"
-        },
-        homePhone: "+6088441994",
-        homeFax: "",
-        lastName: "Wick",
-        logo: {
-            url: "https://example.com/logo.png",
-            mediaType: "image/png",
-            base64: false
-        },
-        middleName: "E",
-        namePrefix: "",
-        nameSuffix: "",
-        nickname: "Wembley",
-        note: "This contact card was created using a Digital Business Card",
-        organization: "Good Group",
-        photo: {
-            url: "https://example.com/photo.jpg",
-            mediaType: "image/jpeg",
-            base64: false
-        },
-        role: "Software Engineer",
-        socialUrls: {
-            instagram: "https://www.instagram.com/goodgraphicsja?utm_source=ig_web_button_share_sheet&igsh=ZDNlZDc0MzIxNw=="
-        },
-        source: "",
-        title: "CEO",
-        url: "",
-        workUrl: "",
-        workAddress: {
-            label: "",
-            street: "",
-            city: "",
-            stateProvince: "",
-            postalCode: "",
-            countryRegion: ""
-        },
-        workPhone: "",
-        workFax: "",
-        version: "3.0",
-        ownerId: "6691e4a5acd809745e822caa"
-    };
-    afterEach(() => {
-        jest.clearAllMocks();
+jest.mock('../../../database', () => ({
+    getCardHashMappingByIdDB: jest.fn(),
+    createVCardDB: jest.fn(),
+    updateVCardDB: jest.fn(),
+    deleteVCardDB: jest.fn()
+}));
+
+jest.mock('../../../utils/generateContactCard', () => jest.fn());
+
+describe('POST /vcard/get', () => {
+
+    it('should return a vCard when valid businessId is provided', async () => {
+
+        (getCardHashMappingByIdDB as jest.Mock).mockResolvedValue({ cardId: 'abc123' });
+        (generateContactCard as jest.Mock).mockResolvedValue('BEGIN:VCARD\n...END:VCARD');
+
+        const res = await request(app)
+            .post('/vcard/get')
+            .send({ businessId: 'biz123' });
+
+        expect(res.status).toBe(200);
+        expect(res.text).toContain('BEGIN:VCARD');
+        expect(res.headers['content-type']).toContain('text/vcard');
+        expect(res.headers['content-disposition']).toContain('filename="biz123.vcf"');
+        expect(getCardHashMappingByIdDB).toHaveBeenCalledWith('biz123');
+        expect(generateContactCard).toHaveBeenCalledWith('abc123');
     });
 
-    test('createVCard should create a vCard successfully', async () => {
-        app.post('/vcard', createVCard);
-        (createVCardDB as jest.Mock).mockResolvedValue(mockVCardData);
+    it('should return 400 if businessId is missing', async () => {
+        const res = await request(app).post('/vcard/get').send({});
 
-        const response = await request(app)
-            .post('/vcard')
-            .send(mockVCardData);
-
-        expect(response.status).toBe(200);
-        expect(response.text).not.toBeNull();
-        // expect(response.text).toContain('Success!! VCard created:');
-        expect(createVCardDB).toHaveBeenCalledWith(mockVCardData);
+        expect(res.status).toBe(400);
+        expect(res.body.message).toBe('Missing businessId in request');
     });
 
-    test('createVCard should return 500 on error', async () => {
-        (createVCardDB as jest.Mock).mockRejectedValue(new Error('DB error'));
+    it('should return 404 if no card is found for businessId', async () => {
+        (getCardHashMappingByIdDB as jest.Mock).mockResolvedValue(null);
 
-        const response = await request(app)
-            .post('/vcard')
-            .send(mockVCardData);
+        const res = await request(app)
+            .post('/vcard/get')
+            .send({ businessId: 'invalid-biz' });
 
-        expect(response.status).toBe(500);
-        expect(response.body.message).toBe('Error inserting card information');
-        expect(createVCardDB).toHaveBeenCalledWith(mockVCardData);
+        expect(res.status).toBe(404);
+        expect(res.body.message).toBe('Card not found for this ID');
     });
 
-    test('getVCard should return a vCard successfully', async () => {
-        (generateContactCard as jest.Mock).mockResolvedValue('vCard data');
+    it('should return 500 if generateContactCard throws an error', async () => {
+        (getCardHashMappingByIdDB as jest.Mock).mockResolvedValue({ cardId: 'abc123' });
+        (generateContactCard as jest.Mock).mockRejectedValue(new Error('vCard error'));
 
-        const response = await request(app)
-            .get('/vcard')
-            .send({ ownerId: '123' });
+        const res = await request(app)
+            .post('/vcard/get')
+            .send({ businessId: 'biz123' });
 
-        expect(response.status).toBe(200);
-        expect(response.text).toBe('vCard data');
-        expect(generateContactCard).toHaveBeenCalledWith('123');
-    });
-
-    test('getVCard should return 500 if ownerId is missing', async () => {
-        const response = await request(app).get('/vcard').send({});
-
-        expect(response.status).toBe(500);
-        expect(response.body.message).toBe('Unable to find Id');
-    });
-
-    test('updateVCard should update a vCard successfully', async () => {
-        (updateVCardDB as jest.Mock).mockResolvedValue(mockVCardData);
-
-        const response = await request(app)
-            .put('/vcard')
-            .send({
-                ownerId: '123',
-                firstName: "Arthur",
-                formattedName: "Wembley Pendragon",
-                gender: "male"
-            });
-
-        expect(response.status).toBe(200);
-        expect(response.body).not.toBeNull();
-        expect(updateVCardDB).toHaveBeenCalledWith('123',{
-            ownerId: '123',
-            firstName: "Arthur",
-            formattedName: "Wembley Pendragon",
-            gender: "male"});
-    });
-
-    test('updateVCard should return 500 if ownerId is missing', async () => {
-        const response = await request(app).put('/vcard').send({});
-
-        expect(response.status).toBe(500);
-        expect(response.body.message).toBe('Unable to find Id');
-    });
-
-    test('deleteVCard should delete a vCard successfully', async () => {
-        (deleteVCardDB as jest.Mock).mockResolvedValue({ success: true });
-
-        const response = await request(app)
-            .delete('/vcard')
-            .send({ ownerId: '123' });
-
-        expect(response.status).toBe(200);
-        expect(response.body).toEqual({ success: true });
-        expect(deleteVCardDB).toHaveBeenCalledWith('123');
-    });
-
-    test('deleteVCard should return 500 if ownerId is missing', async () => {
-        const response = await request(app).delete('/vcard').send({});
-
-        expect(response.status).toBe(500);
-        expect(response.body.message).toBe('Unable to find Id');
+        expect(res.status).toBe(500);
+        expect(res.body.message).toBe('Failed to generate vCard');
     });
 });
 
+describe('POST /vcard/create', () => {
+    it('should return 200 and success message if vCard is created', async () => {
+        (createVCardDB as jest.Mock).mockResolvedValue({ id: 'abc123' });
+
+        const res = await request(app)
+            .post('/vcard/create')
+            .send({ firstName: 'Test', lastName: 'User' });
+
+        expect(res.status).toBe(200);
+        expect(res.text).toContain('Success! VCard created');
+        expect(createVCardDB).toHaveBeenCalledWith({ firstName: 'Test', lastName: 'User' });
+    });
+
+    it('should return 500 if createVCardDB throws', async () => {
+        (createVCardDB as jest.Mock).mockRejectedValue(new Error('DB insert error'));
+
+        const res = await request(app)
+            .post('/vcard/create')
+            .send({ firstName: 'Test', lastName: 'User' });
+
+        expect(res.status).toBe(500);
+        expect(res.body.message).toBe('Error inserting card information');
+        expect(res.body.error).toBe('DB insert error');
+    });
+});
+
+describe('PUT /vcard/update', () => {
+    it('should return 200 and the updated vCard if successful', async () => {
+        (updateVCardDB as jest.Mock).mockResolvedValue({ updated: true });
+
+        const res = await request(app)
+            .put('/vcard/update')
+            .send({ ownerId: 'abc123', title: 'CEO' });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toEqual({ updated: true });
+        expect(updateVCardDB).toHaveBeenCalledWith('abc123', { ownerId: 'abc123', title: 'CEO' });
+    });
+
+    it('should return 400 if ownerId is missing', async () => {
+        const res = await request(app)
+            .put('/vcard/update')
+            .send({ title: 'CTO' });
+
+        expect(res.status).toBe(400);
+        expect(res.body.message).toBe('Missing ownerId');
+    });
+
+    it('should return 500 if updateVCardDB throws', async () => {
+        (updateVCardDB as jest.Mock).mockRejectedValue(new Error('DB update error'));
+
+        const res = await request(app)
+            .put('/vcard/update')
+            .send({ ownerId: 'abc123', title: 'CTO' });
+
+        expect(res.status).toBe(500);
+        expect(res.body.message).toBe('Error updating vCard');
+        expect(res.body.error).toBe('DB update error');
+    });
+});
+
+describe('DELETE /vcard/delete', () => {
+    it('should return 200 and delete result if successful', async () => {
+        (deleteVCardDB as jest.Mock).mockResolvedValue({ deleted: true });
+
+        const res = await request(app)
+            .delete('/vcard/delete')
+            .send({ ownerId: 'abc123' });
+
+        expect(res.status).toBe(200);
+        expect(res.body).toEqual({ deleted: true });
+        expect(deleteVCardDB).toHaveBeenCalledWith('abc123');
+    });
+
+    it('should return 400 if ownerId is missing', async () => {
+        const res = await request(app)
+            .delete('/vcard/delete')
+            .send({});
+
+        expect(res.status).toBe(400);
+        expect(res.body.message).toBe('Missing ownerId');
+    });
+
+    it('should return 500 if deleteVCardDB throws', async () => {
+        (deleteVCardDB as jest.Mock).mockRejectedValue(new Error('DB delete error'));
+
+        const res = await request(app)
+            .delete('/vcard/delete')
+            .send({ ownerId: 'abc123' });
+
+        expect(res.status).toBe(500);
+        expect(res.body.message).toBe('Error deleting vCard');
+        expect(res.body.error).toBe('DB delete error');
+    });
+});

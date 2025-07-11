@@ -10,10 +10,25 @@ const uri = process.env.MONGODB_URI as string;
 const dbname = process.env.MONGODB_DB_NAME as string;
 
 /**
+ * Database service module for handling all MongoDB operations.
+ * @module databaseService
+ * @description Provides CRUD operations for:
+ * - Businesses
+ * - Users
+ * - VCards
+ * - Cards
+ * - Social media
+ * - Metrics and analytics
+ * - Hash mappings
+ */
+
+/**
  * Creates a new business in the database.
- *
- * @param {BusinessData} businessDetails - The business details to add.
- * @returns {Promise<Object>} - The newly created business record.
+ * @async
+ * @function createBusinessDB
+ * @param {BusinessData} businessDetails - The business details to create
+ * @returns {Promise<InsertOneResult>} MongoDB insert result
+ * @throws {Error} If database operation fails
  */
 export const createBusinessDB = async (businessDetails: BusinessData) => {
     const client = new MongoClient(encodeURI(uri), {
@@ -41,10 +56,12 @@ export const createBusinessDB = async (businessDetails: BusinessData) => {
 
 /**
  * Updates a business record in the database.
- *
- * @param {ObjectId} id - The ID of the business to update.
- * @param {Partial<BusinessData>} updateDetails - The details to update.
- * @returns {Promise<Object>} - The updated business record.
+ * @async
+ * @function updateBusinessDB
+ * @param {string|ObjectId} id - Business ID to update
+ * @param {Partial<BusinessData>} updateDetails - Fields to update
+ * @returns {Promise<UpdateResult>} MongoDB update result
+ * @throws {Error} If database operation fails
  */
 export const updateBusinessDB = async (id: string | ObjectId, updateDetails: Partial<BusinessData>) => {
     const client = new MongoClient(encodeURI(uri), {
@@ -83,9 +100,11 @@ export const updateBusinessDB = async (id: string | ObjectId, updateDetails: Par
 
 /**
  * Deletes a business record from the database.
- *
- * @param {ObjectId} id - The ID of the business to delete.
- * @returns {Promise<Object>} - The result of the deletion operation.
+ * @async
+ * @function deleteBusinessDB
+ * @param {string} id - Business ID to delete
+ * @returns {Promise<DeleteResult>} MongoDB delete result
+ * @throws {Error} If database operation fails
  */
 export const deleteBusinessDB = async (id: string) => {
     const client = new MongoClient(encodeURI(uri), {useNewUrlParser: true, useUnifiedTopology: true});
@@ -112,11 +131,13 @@ export const deleteBusinessDB = async (id: string) => {
 }
 
 /**
- * Updates the social media handles for a business in the database.
- *
- * @param {string} businessId - The ID of the business to update.
- * @param {any} addedHandle - The social media handle to be added.
- * @returns {Promise<any>} The updated business document.
+ * Updates social media handles for a business.
+ * @async
+ * @function updateSocialHandlesDB
+ * @param {string} businessId - Business ID to update
+ * @param {any} addedHandle - New social media handle
+ * @returns {Promise<any>} Updated document
+ * @throws {Error} If database operation fails
  */
 export const updateSocialHandlesDB = async (businessId: string, addedHandle: any): Promise<any> => {
     const client = new MongoClient(uri, {
@@ -156,11 +177,13 @@ export const updateSocialHandlesDB = async (businessId: string, addedHandle: any
 };
 
 /**
- * Updates the logo for a business in the database.
- *
- * @param {string} businessId - The ID of the business to update.
- * @param {any} logo - The new logo object containing mime type and data.
- * @returns {Promise<any>} The updated business document.
+ * Updates a business logo.
+ * @async
+ * @function updateLogoDB
+ * @param {string} businessId - Business ID to update
+ * @param {any} logo - New logo data
+ * @returns {Promise<any>} Update result
+ * @throws {Error} If database operation fails
  */
 export const updateLogoDB = async (businessId: string, logo: any): Promise<any> => {
     const client = new MongoClient(encodeURI(uri), {useNewUrlParser: true, useUnifiedTopology: true});
@@ -203,9 +226,12 @@ export const updateLogoDB = async (businessId: string, logo: any): Promise<any> 
 };
 
 /**
- * Retrieve a business record by id from the database.
- *
- * @param businessId - The ID of the business to retrieve.
+ * Retrieves a business by ID.
+ * @async
+ * @function getBusinessByIdDB
+ * @param {string} businessId - Business ID to retrieve
+ * @returns {Promise<BusinessData|null>} Business document or null
+ * @throws {Error} If database operation fails
  */
 export const getBusinessByIdDB = async (businessId: string) => {
     const client = new MongoClient(uri,
@@ -239,9 +265,12 @@ export const getBusinessByIdDB = async (businessId: string) => {
 }
 
 /**
- * Retrieve a business record by user ID from the database.
- *
- * @param userId - The ID of the user whose business to retrieve.
+ * Retrieves a business by user ID.
+ * @async
+ * @function getBusinessByUserIdDB
+ * @param {string} userId - User ID to find business for
+ * @returns {Promise<BusinessData|null>} Business document or null
+ * @throws {Error} If database operation fails
  */
 export const getBusinessByUserIdDB = async (userId: string) => {
     const client = new MongoClient(uri, {
@@ -276,8 +305,12 @@ export const getBusinessByUserIdDB = async (userId: string) => {
 
 // CREATE VCard (POST)
 /**
- * Inserts a new VCard into the MongoDB database.
- * @param vCardData The VCard object to be inserted.
+ * Creates a new VCard in the database.
+ * @async
+ * @function createVCardDB
+ * @param {any} vCardData - VCard data to insert
+ * @returns {Promise<string|null>} Inserted ID or null
+ * @throws {Error} If database operation fails
  */
 export const createVCardDB = async (vCardData: any) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -335,8 +368,12 @@ export const createVCardDB = async (vCardData: any) => {
 
 // READ VCard by ID (GET)
 /**
- * Retrieves a VCard by its ID from the MongoDB database.
- * @param cardId The ID of the VCard to be retrieved.
+ * Retrieves a VCard by card ID.
+ * @async
+ * @function getVCardByIdDB
+ * @param {string} cardId - VCard ID to retrieve
+ * @returns {Promise<VCardData|null>} VCard document or null
+ * @throws {Error} If database operation fails
  */
 export const getVCardByIdDB = async (cardId: string) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -359,8 +396,12 @@ export const getVCardByIdDB = async (cardId: string) => {
 
 // READ VCard by ID (GET)
 /**
- * Retrieves a VCard by its ID from the MongoDB database.
- * @param id The ID of the VCard to be retrieved.
+ * Retrieves a VCard by MongoDB ID.
+ * @async
+ * @function getVCardDB
+ * @param {string} id - MongoDB ID to retrieve
+ * @returns {Promise<VCardData|null>} VCard document or null
+ * @throws {Error} If database operation fails
  */
 export const getVCardDB = async (id: string) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -383,9 +424,13 @@ export const getVCardDB = async (id: string) => {
 
 // UPDATE VCard by ID (PUT)
 /**
- * Updates a VCard in the MongoDB database by its Owner ID.
- * @param cardId The card ID of the VCard to be updated.
- * @param updatedVCard The VCard object containing the new data to be set.
+ * Updates a VCard by card ID.
+ * @async
+ * @function updateVCardDB
+ * @param {string} cardId - VCard ID to update
+ * @param {Partial<VCardData>} updatedVCard - Fields to update
+ * @returns {Promise<UpdateResult|null>} Update result or null
+ * @throws {Error} If database operation fails
  */
 export const updateVCardDB = async (cardId: string, updatedVCard: Partial<VCardData>) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -412,9 +457,13 @@ export const updateVCardDB = async (cardId: string, updatedVCard: Partial<VCardD
 
 // UPDATE VCard by ID (PUT)
 /**
- * Updates a VCard in the MongoDB database by its Owner ID.
- * @param id The card ID of the VCard to be updated.
- * @param updatedVCard The VCard object containing the new data to be set.
+ * Updates a VCard by MongoDB ID.
+ * @async
+ * @function updateVCardByIdDB
+ * @param {string} id - MongoDB ID to update
+ * @param {Partial<VCardData>} updatedVCard - Fields to update
+ * @returns {Promise<UpdateResult|null>} Update result or null
+ * @throws {Error} If database operation fails
  */
 export const updateVCardByIdDB = async (id: string, updatedVCard: Partial<VCardData>) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -441,8 +490,12 @@ export const updateVCardByIdDB = async (id: string, updatedVCard: Partial<VCardD
 
 // DELETE VCard by ID (DELETE)
 /**
- * Deletes a VCard from the MongoDB database by its ID.
- * @param vCardId The ID of the VCard to be deleted.
+ * Deletes a VCard by ID.
+ * @async
+ * @function deleteVCardDB
+ * @param {string} vCardId - VCard ID to delete
+ * @returns {Promise<DeleteResult|null>} Delete result or null
+ * @throws {Error} If database operation fails
  */
 export const deleteVCardDB = async (vCardId: string) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -466,7 +519,11 @@ export const deleteVCardDB = async (vCardId: string) => {
 
 // LIST all VCards (GET)
 /**
- * Retrieves all VCARDs from the MongoDB database.
+ * Lists all VCards in database.
+ * @async
+ * @function listVCardsDB
+ * @returns {Promise<VCardData[]|null>} Array of VCards or null
+ * @throws {Error} If database operation fails
  */
 export const listVCardsDB = async () => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -489,8 +546,12 @@ export const listVCardsDB = async () => {
 
 // CREATE User (POST)
 /**
- * Creates a new user in the MongoDB database.
- * @param newUser The User object to be created.
+ * Creates a new user in database.
+ * @async
+ * @function createUserDB
+ * @param {UserData} newUser - User data to create
+ * @returns {Promise<InsertOneResult|null>} Insert result or null
+ * @throws {Error} If database operation fails
  */
 export const createUserDB = async (newUser: UserData) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -517,10 +578,13 @@ export const createUserDB = async (newUser: UserData) => {
 };
 
 /**
- * Finds an existing OAuth user or creates a new one in the MongoDB database.
- * @param profile The OAuth profile containing the user details.
- * @param provider The OAuth provider name (e.g., 'google', 'facebook').
- * @returns The existing or newly created user document.
+ * Finds or creates an OAuth user.
+ * @async
+ * @function findOrCreateOAuthUserDB
+ * @param {any} profile - OAuth profile data
+ * @param {string} provider - Auth provider name
+ * @returns {Promise<UserData|null>} User document or null
+ * @throws {Error} If database operation fails
  */
 export const findOrCreateOAuthUserDB = async (
     profile: any,
@@ -590,8 +654,12 @@ export const findOrCreateOAuthUserDB = async (
 
 // READ User by ID (GET)
 /**
- * Retrieves a user by their ID from the MongoDB database.
- * @param userId The ID of the user to be retrieved.
+ * Retrieves a user by ID.
+ * @async
+ * @function getUserByIdDB
+ * @param {string} userId - User ID to retrieve
+ * @returns {Promise<UserData|null>} User document or null
+ * @throws {Error} If database operation fails
  */
 export const getUserByIdDB = async (userId: string) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -616,8 +684,12 @@ export const getUserByIdDB = async (userId: string) => {
 
 // READ User by email (GET)
 /**
- * Retrieves a user by their ID from the MongoDB database.
- * @param userEmail The email of the user to be retrieved.
+ * Retrieves a user by email.
+ * @async
+ * @function getUserByEmailDB
+ * @param {string} userEmail - Email to search for
+ * @returns {Promise<UserData|null>} User document or null
+ * @throws {Error} If database operation fails
  */
 export const getUserByEmailDB = async (userEmail: string) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -642,9 +714,13 @@ export const getUserByEmailDB = async (userEmail: string) => {
 
 // UPDATE User by ID (PUT)
 /**
- * Updates a user in the MongoDB database by their ID.
- * @param userId The ID of the user to be updated.
- * @param updatedUser The User object containing the new data to be set.
+ * Updates a user by ID.
+ * @async
+ * @function updateUserDB
+ * @param {string} userId - User ID to update
+ * @param {Partial<UserData>} updatedUser - Fields to update
+ * @returns {Promise<UpdateResult|null>} Update result or null
+ * @throws {Error} If database operation fails
  */
 export const updateUserDB = async (userId: string, updatedUser: Partial<UserData>) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -677,10 +753,14 @@ export const updateUserDB = async (userId: string, updatedUser: Partial<UserData
 };
 
 // DELETE User by ID (DELETE)
+
 /**
- * Deletes a user from the MongoDB database by their ID.
- *
- * @param userId The ID of the user to be deleted.
+ * Deletes a user by ID.
+ * @async
+ * @function deleteUserDB
+ * @param {string} userId - User ID to delete
+ * @returns {Promise<DeleteResult>} Delete result
+ * @throws {Error} If database operation fails
  */
 export const deleteUserDB = async (userId: string) => {
     const client = new MongoClient(encodeURI(uri), {useNewUrlParser: true, useUnifiedTopology: true});
@@ -705,7 +785,11 @@ export const deleteUserDB = async (userId: string) => {
 };
 
 /**
- * Retrieves all users from the MongoDB database.
+ * Lists all users in database.
+ * @async
+ * @function listUsersDB
+ * @returns {Promise<UserData[]>} Array of users
+ * @throws {Error} If database operation fails
  */
 export const listUsersDB = async () => {
     const client = new MongoClient(encodeURI(uri), {useNewUrlParser: true, useUnifiedTopology: true});
@@ -770,10 +854,12 @@ export const healthDB = async () => {
 };
 
 /**
- * Inserts a new social media record into the socials collection.
- *
- * @param {any} socialData - The social media data to be inserted.
- * @returns {Promise<any>} The result of the insertion operation.
+ * Creates a new social media record.
+ * @async
+ * @function createSocialDB
+ * @param {any} socialData - Social data to create
+ * @returns {Promise<any>} Insert result
+ * @throws {Error} If database operation fails
  */
 export const createSocialDB = async (socialData: any): Promise<any> => {
     const client = new MongoClient(encodeURI(uri), {
@@ -795,10 +881,12 @@ export const createSocialDB = async (socialData: any): Promise<any> => {
 };
 
 /**
- * Retrieves a social media record by the user's ID.
- *
- * @param {string} userId - The ID of the user to retrieve the social media records for.
- * @returns {Promise<any[]>} A list of social media records for the user.
+ * Gets social media by user ID.
+ * @async
+ * @function getSocialByUserIdDB
+ * @param {string} userId - User ID to search for
+ * @returns {Promise<any[]>} Array of social records
+ * @throws {Error} If database operation fails
  */
 export const getSocialByUserIdDB = async (userId: string): Promise<any[]> => {
     const client = new MongoClient(encodeURI(uri), {
@@ -822,10 +910,12 @@ export const getSocialByUserIdDB = async (userId: string): Promise<any[]> => {
 };
 
 /**
- * Retrieves a social media record by the business's ID.
- *
- * @param {string} businessId - The ID of the business to retrieve the social media records for.
- * @returns {Promise<any[]>} A list of social media records for the business.
+ * Gets social media by business ID.
+ * @async
+ * @function getSocialByBusinessIdDB
+ * @param {string} businessId - Business ID to search for
+ * @returns {Promise<any[]>} Array of social records
+ * @throws {Error} If database operation fails
  */
 export const getSocialByBusinessIdDB = async (businessId: string): Promise<any[]> => {
     const client = new MongoClient(encodeURI(uri), {
@@ -847,10 +937,12 @@ export const getSocialByBusinessIdDB = async (businessId: string): Promise<any[]
 };
 
 /**
- * Retrieves a social media record by its ID.
- *
- * @param {string} socialId - The ID of the social media record to retrieve.
- * @returns {Promise<any>} The social media record.
+ * Gets a social media record by ID.
+ * @async
+ * @function getSocialDB
+ * @param {string} socialId - Social record ID
+ * @returns {Promise<any>} Social document
+ * @throws {Error} If database operation fails
  */
 export const getSocialDB = async (socialId: string): Promise<any> => {
     const client = new MongoClient(encodeURI(uri), {
@@ -872,10 +964,12 @@ export const getSocialDB = async (socialId: string): Promise<any> => {
 };
 
 /**
- * Retrieves all social media records associated with a user.
- *
- * @param {string} userId - The ID of the user to retrieve social media records for.
- * @returns {Promise<any[]>} A list of social media records for the user.
+ * Gets all social media for a user.
+ * @async
+ * @function getAllSocialsForUserDB
+ * @param {string} userId - User ID to search for
+ * @returns {Promise<any[]>} Array of social records
+ * @throws {Error} If database operation fails
  */
 export const getAllSocialsForUserDB = async (userId: string): Promise<any[]> => {
     const client = new MongoClient(encodeURI(uri), {
@@ -896,11 +990,13 @@ export const getAllSocialsForUserDB = async (userId: string): Promise<any[]> => 
 };
 
 /**
- * Updates a social media record by its ID.
- *
- * @param {string} socialId - The ID of the social media record to update.
- * @param {any} updatedData - The updated data for the social media record.
- * @returns {Promise<any>} The result of the update operation.
+ * Updates a social media record.
+ * @async
+ * @function updateSocialDB
+ * @param {string} socialId - Social record ID to update
+ * @param {any} updatedData - Fields to update
+ * @returns {Promise<any>} Update result
+ * @throws {Error} If database operation fails
  */
 export const updateSocialDB = async (socialId: string, updatedData: any): Promise<any> => {
     const client = new MongoClient(encodeURI(uri), {
@@ -925,10 +1021,12 @@ export const updateSocialDB = async (socialId: string, updatedData: any): Promis
 };
 
 /**
- * Deletes a social media record by its ID.
- *
- * @param {string} socialId - The ID of the social media record to delete.
- * @returns {Promise<any>} The result of the delete operation.
+ * Deletes a social media record.
+ * @async
+ * @function deleteSocialDB
+ * @param {string} socialId - Social record ID to delete
+ * @returns {Promise<any>} Delete result
+ * @throws {Error} If database operation fails
  */
 export const deleteSocialDB = async (socialId: string): Promise<any> => {
     const client = new MongoClient(encodeURI(uri), {
@@ -953,8 +1051,12 @@ export const deleteSocialDB = async (socialId: string): Promise<any> => {
 };
 
 /**
- * Inserts a new Card into the MongoDB database.
- * @param cardData The Card object to be inserted.
+ * Creates a new card in database.
+ * @async
+ * @function createCardDB
+ * @param {Card} cardData - Card data to create
+ * @returns {Promise<InsertOneResult|null>} Insert result or null
+ * @throws {Error} If database operation fails
  */
 export const createCardDB = async (cardData: Card) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -976,8 +1078,12 @@ export const createCardDB = async (cardData: Card) => {
 };
 
 /**
- * Retrieves a Card by its ID from the MongoDB database.
- * @param cardId The ID of the Card to be retrieved.
+ * Gets a card by ID.
+ * @async
+ * @function getCardByIdDB
+ * @param {string} cardId - Card ID to retrieve
+ * @returns {Promise<Card|null>} Card document or null
+ * @throws {Error} If database operation fails
  */
 export const getCardByIdDB = async (cardId: string) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -1000,9 +1106,13 @@ export const getCardByIdDB = async (cardId: string) => {
 };
 
 /**
- * Updates a Card in the MongoDB database by its ID.
- * @param cardId The ID of the Card to be updated.
- * @param updatedCard The Card object containing the new data to be set.
+ * Updates a card by ID.
+ * @async
+ * @function updateCardDB
+ * @param {string} cardId - Card ID to update
+ * @param {Partial<Card>} updatedCard - Fields to update
+ * @returns {Promise<UpdateResult|null>} Update result or null
+ * @throws {Error} If database operation fails
  */
 export const updateCardDB = async (cardId: string, updatedCard: Partial<Card>) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -1028,8 +1138,12 @@ export const updateCardDB = async (cardId: string, updatedCard: Partial<Card>) =
 };
 
 /**
- * Deletes a Card from the MongoDB database by its ID.
- * @param cardId The ID of the Card to be deleted.
+ * Deletes a card by ID.
+ * @async
+ * @function deleteCardDB
+ * @param {string} cardId - Card ID to delete
+ * @returns {Promise} Delete result
+ * @throws {Error} If database operation fails
  */
 export const deleteCardDB = async (cardId: string) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -1051,7 +1165,11 @@ export const deleteCardDB = async (cardId: string) => {
 };
 
 /**
- * Retrieves all Cards from the MongoDB database.
+ * Lists all cards in database.
+ * @async
+ * @function listCardsDB
+ * @returns {Promise<Card[]|null>} Array of cards or null
+ * @throws {Error} If database operation fails
  */
 export const listCardsDB = async () => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -1073,12 +1191,15 @@ export const listCardsDB = async () => {
 };
 
 /**
- * Inserts a new mapping of a card's hash and its MongoDB ID.
- * @param {Object} mappingData - The data containing cardId and its corresponding hash.
- * @param {ObjectId} mappingData.cardId - The original MongoDB ID of the card.
- * @param {string} mappingData.hash - The generated hash for the card.
- * @param {string} mappingData.shortenedHash - The shortened hash for the card.
- * @returns {Promise<any>} The result of the insert operation.
+ * Creates a hash mapping for a card.
+ * @async
+ * @function createHashMappingDB
+ * @param {Object} mappingData - Mapping data to create
+ * @param {string} mappingData.cardId - Card ID to map
+ * @param {string} mappingData.identifier - Short identifier
+ * @param {string} mappingData.hash - Full hash value
+ * @returns {Promise<any>} Insert result
+ * @throws {Error} If database operation fails
  */
 export const createHashMappingDB = async (mappingData: {
     cardId: string | undefined;
@@ -1104,9 +1225,12 @@ export const createHashMappingDB = async (mappingData: {
 };
 
 /**
- * Retrieves a hash mapping entry by its cardId.
- * @param {string} cardId - The MongoDB ID of the card to retrieve the hash mapping for.
- * @returns {Promise<any>} The retrieved hash mapping document, or null if not found.
+ * Gets hash mapping by card ID.
+ * @async
+ * @function getCardHashMappingByCardIdDB
+ * @param {string} cardId - Card ID to search for
+ * @returns {Promise<any>} Mapping document
+ * @throws {Error} If database operation fails
  */
 export const getCardHashMappingByCardIdDB = async (cardId: string): Promise<any> => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -1128,10 +1252,13 @@ export const getCardHashMappingByCardIdDB = async (cardId: string): Promise<any>
 };
 
 /**
- * Updates an existing hash mapping entry by its cardId.
- * @param cardId
- * @param {Partial<{hash: string}>} updatedData - The updated hash data.
- * @returns {Promise<any>} The result of the update operation.
+ * Updates a hash mapping.
+ * @async
+ * @function updateHashMappingDB
+ * @param {string} cardId - Card ID to update mapping for
+ * @param {Partial<{hash: string}>} updatedData - Fields to update
+ * @returns {Promise<any>} Update result
+ * @throws {Error} If database operation fails
  */
 export const updateHashMappingDB = async (cardId: string, updatedData: Partial<{ hash: string }>): Promise<any> => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -1156,9 +1283,12 @@ export const updateHashMappingDB = async (cardId: string, updatedData: Partial<{
 };
 
 /**
- * Deletes a hash mapping entry by its cardId.
- * @param cardId - The MongoDB ID of the card to delete the hash mapping for.
- * @returns {Promise<any>} The result of the delete operation.
+ * Deletes a hash mapping.
+ * @async
+ * @function deleteHashMappingDB
+ * @param {string} cardId - Card ID to delete mapping for
+ * @returns {Promise<any>} Delete result
+ * @throws {Error} If database operation fails
  */
 export const deleteHashMappingDB = async (cardId: string): Promise<any> => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -1180,8 +1310,11 @@ export const deleteHashMappingDB = async (cardId: string): Promise<any> => {
 };
 
 /**
- * Retrieves all hash mappings from the database.
- * @returns {Promise<any[]>} An array of all hash mappings.
+ * Lists all hash mappings.
+ * @async
+ * @function listHashMappingsDB
+ * @returns {Promise<any[]>} Array of mappings
+ * @throws {Error} If database operation fails
  */
 export const listHashMappingsDB = async (): Promise<any[]> => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -1203,9 +1336,12 @@ export const listHashMappingsDB = async (): Promise<any[]> => {
 };
 
 /**
- * Inserts a new CardMetric into the MongoDB database.
- * @param cardMetricData The CardMetric object to be inserted.
- * @returns The result of the insertion operation.
+ * Creates a card metric record.
+ * @async
+ * @function createCardMetricDB
+ * @param {any} cardMetricData - Metric data to create
+ * @returns {Promise<any>} Insert result
+ * @throws {Error} If database operation fails
  */
 export const createCardMetricDB = async (cardMetricData: any) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -1227,9 +1363,12 @@ export const createCardMetricDB = async (cardMetricData: any) => {
 };
 
 /**
- * Retrieves a CardMetric by its ID from the MongoDB database.
- * @param cardMetricId The ID of the CardMetric to be retrieved.
- * @returns The CardMetric object if found, otherwise null.
+ * Gets card metrics by ID.
+ * @async
+ * @function getCardMetricByIdDB
+ * @param {string} cardMetricId - Metric ID to retrieve
+ * @returns {Promise<any>} Metric document
+ * @throws {Error} If database operation fails
  */
 export const getCardMetricByIdDB = async (cardMetricId: string) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -1251,9 +1390,12 @@ export const getCardMetricByIdDB = async (cardMetricId: string) => {
 };
 
 /**
- * Retrieves a CardMetric by its cardId from the MongoDB database.
- * @param cardId The ID of the Card associated with the CardMetric to be retrieved.
- * @returns The CardMetric object if found, otherwise null.
+ * Gets card metrics by card ID.
+ * @async
+ * @function getCardMetricByCardIdDB
+ * @param {string} cardId - Card ID to search for
+ * @returns {Promise<any>} Metric document
+ * @throws {Error} If database operation fails
  */
 export const getCardMetricByCardIdDB = async (cardId: string) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -1274,12 +1416,14 @@ export const getCardMetricByCardIdDB = async (cardId: string) => {
         dbLogger.info("Connection closed");
     }
 };
-
 /**
- * Updates a CardMetric in the MongoDB database by its ID.
- * @param cardMetricId The ID of the CardMetric to be updated.
- * @param updatedCardMetric The CardMetric object containing the new data to be set.
- * @returns The result of the update operation.
+ * Updates card metrics.
+ * @async
+ * @function updateCardMetricDB
+ * @param {string} cardMetricId - Metric ID to update
+ * @param {Partial<any>} updatedCardMetric - Fields to update
+ * @returns {Promise<any>} Update result
+ * @throws {Error} If database operation fails
  */
 export const updateCardMetricDB = async (cardMetricId: string, updatedCardMetric: Partial<any>) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -1305,9 +1449,12 @@ export const updateCardMetricDB = async (cardMetricId: string, updatedCardMetric
 };
 
 /**
- * Deletes a CardMetric from the MongoDB database by its ID.
- * @param cardId The associated cardID of the CardMetric to be deleted.
- * @returns The result of the delete operation.
+ * Deletes card metrics.
+ * @async
+ * @function deleteCardMetricDB
+ * @param {string} cardId - Card ID to delete metrics for
+ * @returns {Promise<any>} Delete result
+ * @throws {Error} If database operation fails
  */
 export const deleteCardMetricDB = async (cardId: string) => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -1329,8 +1476,11 @@ export const deleteCardMetricDB = async (cardId: string) => {
 };
 
 /**
- * Retrieves all CardMetrics from the MongoDB database.
- * @returns An array of CardMetrics.
+ * Lists all card metrics.
+ * @async
+ * @function listCardMetricsDB
+ * @returns {Promise<any[]>} Array of metrics
+ * @throws {Error} If database operation fails
  */
 export const listCardMetricsDB = async () => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
@@ -1352,9 +1502,12 @@ export const listCardMetricsDB = async () => {
 };
 
 /**
- * Retrieves a CardHashMapping by its ID from the MongoDB database.
- * @param mappingId The ID of the CardHashMapping to be retrieved.
- * @returns The CardHashMapping object if found, otherwise null.
+ * Gets hash mapping by identifier.
+ * @async
+ * @function getCardHashMappingByIdDB
+ * @param {string} mappingId - Mapping identifier
+ * @returns {Promise<any>} Mapping document
+ * @throws {Error} If database operation fails
  */
 export const getCardHashMappingByIdDB = async (mappingId: string) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -1376,10 +1529,14 @@ export const getCardHashMappingByIdDB = async (mappingId: string) => {
 };
 
 /**
- * Retrieves a mapping entry by its hash.
- * @param {string} hash - The hash to search for in the database.
- * @returns {Promise<any>} The mapping data containing the original card ID if found.
+ * Gets hash mapping by hash value.
+ * @async
+ * @function getHashMappingByHashDB
+ * @param {string} hash - Hash value to search for
+ * @returns {Promise<any>} Mapping document
+ * @throws {Error} If database operation fails
  */
+
 export const getHashMappingByHashDB = async (hash: string): Promise<any> => {
     const client = new MongoClient(uri, {useNewUrlParser: true, useUnifiedTopology: true});
     try {
@@ -1400,9 +1557,12 @@ export const getHashMappingByHashDB = async (hash: string): Promise<any> => {
 };
 
 /**
- * Retrieves a CardHashMapping by its cardId from the MongoDB database.
- * @param cardId The ID of the card associated with the CardHashMapping to be retrieved.
- * @returns The CardHashMapping object if found, otherwise null.
+ * Gets hash mappings by card ID.
+ * @async
+ * @function getCardHashMappingsByCardIdDB
+ * @param {string} cardId - Card ID to search for
+ * @returns {Promise<any>} Mapping document
+ * @throws {Error} If database operation fails
  */
 export const getCardHashMappingsByCardIdDB = async (cardId: string) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -1424,10 +1584,13 @@ export const getCardHashMappingsByCardIdDB = async (cardId: string) => {
 };
 
 /**
- * Updates a CardHashMapping in the MongoDB database by its ID.
- * @param mappingId The ID of the CardHashMapping to be updated.
- * @param updatedCardHashMapping The object containing the new data to be set.
- * @returns The result of the update operation.
+ * Updates hash mappings.
+ * @async
+ * @function updateCardHashMappingsDB
+ * @param {string} mappingId - Mapping ID to update
+ * @param {Partial<any>} updatedCardHashMapping - Fields to update
+ * @returns {Promise<any>} Update result
+ * @throws {Error} If database operation fails
  */
 export const updateCardHashMappingsDB = async (mappingId: string, updatedCardHashMapping: Partial<any>) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -1453,9 +1616,12 @@ export const updateCardHashMappingsDB = async (mappingId: string, updatedCardHas
 };
 
 /**
- * Deletes a CardHashMapping from the MongoDB database by its ID.
- * @param mappingId The ID of the CardHashMapping to be deleted.
- * @returns The result of the delete operation.
+ * Deletes hash mappings.
+ * @async
+ * @function deleteCardHashMappingsDB
+ * @param {string} mappingId - Mapping ID to delete
+ * @returns {Promise<any>} Delete result
+ * @throws {Error} If database operation fails
  */
 export const deleteCardHashMappingsDB = async (mappingId: string) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -1477,8 +1643,11 @@ export const deleteCardHashMappingsDB = async (mappingId: string) => {
 };
 
 /**
- * Retrieves all CardHashMappings from the MongoDB database.
- * @returns An array of CardHashMappings.
+ * Lists all hash mappings.
+ * @async
+ * @function listCardHashMappingsDB
+ * @returns {Promise<any[]>} Array of mappings
+ * @throws {Error} If database operation fails
  */
 export const listCardHashMappingsDB = async () => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
@@ -1500,10 +1669,12 @@ export const listCardHashMappingsDB = async () => {
 };
 
 /**
- * Retrieves consolidated business data by aggregating across multiple collections.
- *
- * @param identifier The ID of the user whose data needs to be retrieved.
- * @returns A promise resolving to the consolidated data from businesses, users, roles, socials, and vcards collections.
+ * Aggregates data across collections for a card.
+ * @async
+ * @function aggregateDataDB
+ * @param {string} identifier - Card identifier
+ * @returns {Promise<any>} Aggregated data
+ * @throws {Error} If database operation fails
  */
 export const aggregateDataDB = async (identifier: string) => {
     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });

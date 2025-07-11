@@ -17,19 +17,22 @@ import {verifyBusinessId} from "../../utils/verifyBusinessId";
 const cardsLogger = logger.child({context: 'cardsService'});
 /**
  * Creates a new card in the database.
- *
- * @param {Request} req - The request object from Express, containing the card data in `req.body`.
- * @param {Response} res - The response object from Express to send the response.
- * @returns {Promise<Response>} The response with status and message for card creation.
- *
+ * @async
+ * @function createCard
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @returns {Promise<Response>} Promise that resolves to the Express response
+ * @throws {Error} If card creation fails
+ * @description
+ * Creates a new card with a unique identifier and hash mapping. Verifies business ownership if businessId is provided.
  * @example
- * // Expected card data in `req.body`:
- * // {
- * //   "userId": "user-id",
- * //   "businessId": "business-id", Optional
- * //   "status": "active",
- * //   ...
- * // }
+ * // Request body example:
+ * {
+ *   "userId": "user123",
+ *   "businessId": "business456", // Optional
+ *   "status": "active",
+ *   // other card properties...
+ * }
  */
 export const createCard = async (req: Request, res: Response): Promise<Response | void> => {
     const cardData = req.body;
@@ -74,17 +77,19 @@ export const createCard = async (req: Request, res: Response): Promise<Response 
     }
 };
 /**
- * Retrieves a card by its ID.
- *
- * @param {Request} req - The request object from Express, with `cardId` in `req.params`.
- * @param {Response} res - The response object from Express to send the retrieved card data.
- * @returns {Promise<Response>} The response containing the card data if found, or an error message.
- *
+ * Retrieves a card by its identifier.
+ * @async
+ * @function getCard
+ * @param {Request} req - Express request object containing identifier in params
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>} Promise that resolves when response is sent
+ * @description
+ * Fetches card details using the identifier which is mapped to the actual card ID in the database.
  * @example
- * // Expected `req.params`:
- * // {
- * //   "cardId": "card-id"
- * // }
+ * // Request params example:
+ * {
+ *   "identifier": "abc123def456"
+ * }
  */
 export const getCard = async (req: Request, res: Response): Promise<void> => {
     const identifier = req.params.identifier;
@@ -111,23 +116,24 @@ export const getCard = async (req: Request, res: Response): Promise<void> => {
 };
 
 /**
- * Updates a card's data by its ID.
- *
- * @param {Request} req - The request object from Express, with `cardId` in `req.params` and updated card data in `req.body`.
- * @param {Response} res - The response object from Express to send the response after updating.
- * @returns {Promise<void>} The response with the updated card data or an error message.
- *
+ * Updates a card's information by its ID.
+ * @async
+ * @function updateCard
+ * @param {Request} req - Express request object containing cardId in params and update data in body
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>} Promise that resolves when response is sent
+ * @description
+ * Updates the specified card with the provided data. Returns the updated card if successful.
  * @example
- * // Expected `req.params`:
- * // {
- * //   "cardId": "card-id"
- * // }
- * // Expected `req.body`:
- * // {
- * //   "status": "updated status",
- * //   "lastTap": "updated date",
- * //   ...
- * // }
+ * // Request params example:
+ * {
+ *   "cardId": "card123"
+ * }
+ * // Request body example:
+ * {
+ *   "status": "inactive",
+ *   "lastTap": "2023-01-01T00:00:00Z"
+ * }
  */
 export const updateCard = async (req: Request, res: Response): Promise<void> => {
     const cardId = req.params.cardId;
@@ -154,16 +160,18 @@ export const updateCard = async (req: Request, res: Response): Promise<void> => 
 
 /**
  * Deletes a card by its ID.
- *
- * @param {Request} req - The request object from Express, with `cardId` in `req.params`.
- * @param {Response} res - The response object from Express to confirm deletion or report an error.
- * @returns {Promise<void>} The response with a success or error message after deletion.
- *
+ * @async
+ * @function deleteCard
+ * @param {Request} req - Express request object containing cardId in params
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>} Promise that resolves when response is sent
+ * @description
+ * Removes the specified card from the database. Returns the deleted card if successful.
  * @example
- * // Expected `req.params`:
- * // {
- * //   "cardId": "card-id"
- * // }
+ * // Request params example:
+ * {
+ *   "cardId": "card123"
+ * }
  */
 export const deleteCard = async (req: Request, res: Response): Promise<void> => {
     const cardId = req.params.cardId;
@@ -186,6 +194,36 @@ export const deleteCard = async (req: Request, res: Response): Promise<void> => 
         res.status(400).send({message: 'Unable to find card ID'});
     }
 };
+
+/**
+ * Records a tap event for a card and increments the tap count.
+ * @async
+ * @function incrementTap
+ * @param {Request} req - Express request object containing identifier and source in params, and tap info in body
+ * @param {Response} res - Express response object
+ * @returns {Promise<Response>} Promise that resolves to the Express response
+ * @description
+ * Records tap details including location and device information. Skips recording for admin sources.
+ * @example
+ * // Request params example:
+ * {
+ *   "identifier": "abc123def456",
+ *   "source": "mobile" // Optional, "admin" skips recording
+ * }
+ * // Request body example:
+ * {
+ *   "location": {
+ *     "lat": 40.7128,
+ *     "lng": -74.0060,
+ *     "accuracy": 10
+ *   },
+ *   "deviceInfo": {
+ *     "os": "iOS",
+ *     "browser": "Safari",
+ *     "ip": "192.168.1.1"
+ *   }
+ * }
+ */
 
 export const incrementTap = async (req: Request, res: Response) => {
     const { identifier, source } = req.params;
@@ -262,6 +300,21 @@ export const incrementTap = async (req: Request, res: Response) => {
     }
 };
 
+/**
+ * Toggles a card's status between active and inactive.
+ * @async
+ * @function toggleCard
+ * @param {Request} req - Express request object containing cardId in params
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>} Promise that resolves when response is sent
+ * @description
+ * Switches the card's status (active ↔ inactive) and returns the updated status.
+ * @example
+ * // Request params example:
+ * {
+ *   "cardId": "card123"
+ * }
+ */
 export const toggleCard = async (req: Request, res: Response) => {
     const cardId: string = req.params.cardId;
 
@@ -296,6 +349,22 @@ export const toggleCard = async (req: Request, res: Response) => {
         res.status(400).send({ message: 'Card ID is required' });
     }
 };
+
+/**
+ * Aggregates card data for a given identifier.
+ * @async
+ * @function aggregateCardData
+ * @param {Request} req - Express request object containing identifier in params
+ * @param {Response} res - Express response object
+ * @returns {Promise<void>} Promise that resolves when response is sent
+ * @description
+ * Collects and combines various data points related to the card identified by the given identifier.
+ * @example
+ * // Request params example:
+ * {
+ *   "identifier": "abc123def456"
+ * }
+ */
 
 export const aggregateCardData = async (req: Request, res: Response) => {
     let identifier = req.params.identifier;

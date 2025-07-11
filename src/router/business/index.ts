@@ -12,9 +12,23 @@ import logger from '../../logger/logger';
 const businessLogger = logger.child({ context: 'businessService' });
 
 /**
- * Route handler for deleting a business by ID.
- * @param {Request} req - The request object containing the business ID.
- * @param {Response} res - The response object.
+ * Business service module handling all business-related operations.
+ * @module businessService
+ * @description Provides CRUD operations and additional business management functionality.
+ */
+
+/**
+ * Deletes a business by its ID.
+ * @async
+ * @function deleteBusiness
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @param {string} req.params.businessId - The ID of the business to delete
+ * @returns {Promise<void>} Resolves when the operation completes
+ * @throws {Error} If the deletion fails
+ * @example
+ * // DELETE /business/:businessId
+ * deleteBusiness(req, res);
  */
 export const deleteBusiness = async (req: any, res: any) => {
     const businessId = req.params.businessId;
@@ -31,9 +45,17 @@ export const deleteBusiness = async (req: any, res: any) => {
 };
 
 /**
- * Route handler for creating a new business.
- * @param {Request} req - The request object containing business data.
- * @param {Response} res - The response object.
+ * Creates a new business with the provided data.
+ * @async
+ * @function createBusiness
+ * @param {Request} req - Express request object containing business data
+ * @param {Response} res - Express response object
+ * @param {Object} req.body - The business data to create
+ * @returns {Promise<void>} Resolves when the operation completes
+ * @throws {Error} If the creation fails
+ * @example
+ * // POST /business
+ * createBusiness(req, res);
  */
 export const createBusiness = async (req: any, res: any) => {
     businessLogger.info("Creating business data");
@@ -49,9 +71,17 @@ export const createBusiness = async (req: any, res: any) => {
 };
 
 /**
- * Route handler for retrieving a business by ID.
- * @param {Request} req - The request object containing the business ID.
- * @param {Response} res - The response object.
+ * Retrieves a business by its ID.
+ * @async
+ * @function getBusiness
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @param {string} req.params.businessId - The ID of the business to retrieve
+ * @returns {Promise<void>} Resolves when the operation completes
+ * @throws {Error} If the retrieval fails
+ * @example
+ * // GET /business/:businessId
+ * getBusiness(req, res);
  */
 export const getBusiness = async (req: any, res: any) => {
     businessLogger.info("Retrieving business data");
@@ -74,9 +104,17 @@ export const getBusiness = async (req: any, res: any) => {
 
 
 /**
- * Route handler for retrieving a business by user ID.
- * @param {Request} req - The request object containing the user ID.
- * @param {Response} res - The response object.
+ * Retrieves a business by its associated user ID.
+ * @async
+ * @function getBusinessByUserId
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @param {string} req.params.userId - The user ID associated with the business
+ * @returns {Promise<void>} Resolves when the operation completes
+ * @throws {Error} If the retrieval fails
+ * @example
+ * // GET /business/user/:userId
+ * getBusinessByUserId(req, res);
  */
 export const getBusinessByUserId = async (req: any, res: any) => {
     businessLogger.info("Retrieving business data by user ID");
@@ -99,9 +137,18 @@ export const getBusinessByUserId = async (req: any, res: any) => {
 };
 
 /**
- * Route handler for modifying a business's social handles by ID.
- * @param {Request} req - The request object containing the business ID and new handles.
- * @param {Response} res - The response object.
+ * Updates a business's social media handles.
+ * @async
+ * @function updateBusiness
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @param {string} req.params.businessId - The ID of the business to update
+ * @param {Object} req.body.handle - The new social media handles
+ * @returns {Promise<void>} Resolves when the operation completes
+ * @throws {Error} If the update fails
+ * @example
+ * // PUT /business/social/:businessId
+ * updateBusiness(req, res);
  */
 export const updateBusiness = async (req: any, res: any) => {
     const businessId = req.params.businessId;
@@ -119,9 +166,18 @@ export const updateBusiness = async (req: any, res: any) => {
 };
 
 /**
- * Route handler for updating a business logo by ID.
- * @param {Request} req - The request object containing the business ID and logo data.
- * @param {Response} res - The response object.
+ * Updates a business's logo.
+ * @async
+ * @function updateBusinessLogo
+ * @param {Request} req - Express request object
+ * @param {Response} res - Express response object
+ * @param {string} req.params.businessId - The ID of the business to update
+ * @param {Object} req.body - The new logo data
+ * @returns {Promise<void>} Resolves when the operation completes
+ * @throws {Error} If the update fails
+ * @example
+ * // PUT /business/logo/:businessId
+ * updateBusinessLogo(req, res);
  */
 export const updateBusinessLogo = async (req: any, res: any) => {
     const businessId = req.params.businessId;
@@ -147,6 +203,17 @@ export const updateBusinessLogo = async (req: any, res: any) => {
         }
 
 };
+
+/**
+ * Default export of all business service functions.
+ * @type {Object}
+ * @property {Function} createBusiness - Creates a new business
+ * @property {Function} getBusiness - Retrieves a business by ID
+ * @property {Function} getBusinessByUserId - Retrieves a business by user ID
+ * @property {Function} updateBusiness - Updates business social handles
+ * @property {Function} updateBusinessLogo - Updates business logo
+ * @property {Function} deleteBusiness - Deletes a business
+ */
 
 
 export default {createBusiness, getBusiness, getBusinessByUserId, updateBusiness, updateBusinessLogo, deleteBusiness}
