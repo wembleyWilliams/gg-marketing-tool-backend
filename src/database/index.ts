@@ -1191,6 +1191,78 @@ export const listCardsDB = async () => {
 };
 
 /**
+ * Retrieves all cards associated with a user ID, supporting pagination, sorting, and filtering.
+ *
+ * @param {string} userId - The user ID to filter by.
+ * @param {Object} options - Optional settings.
+ * @param {string} [options.sort] - Sort string like "createdAt:desc".
+ * @param {number} [options.start=0] - Offset for pagination.
+ * @param {number} [options.limit=20] - Limit for pagination.
+ * @param {Object} [options.where={}] - Additional filter conditions.
+ * @returns {Promise<Card[]|null>} - Array of cards or null on failure.
+ */
+/**
+ * Retrieves paginated and filtered cards associated with a specific user ID from the database.
+ *
+ * @async
+ * @function getAllCardsByUserIdDB
+ * @param {string} userId - The unique identifier of the user.
+ * @param {object} options - Query options including sort, start, limit, and filters.
+ * @param {string} [options.sort] - Sort order in "field:direction" format (e.g., "createdAt:desc").
+ * @param {number} [options.start=0] - Pagination start index.
+ * @param {number} [options.limit=20] - Number of results to return.
+ * @param {Record<string, any>} [options.where] - Additional filter conditions.
+ * @returns {Promise<{ data: Card[]; total: number } | null>} Object with card array and total count.
+ *
+ * @throws {Error} If the database operation fails.
+ */
+export const getAllCardsByUserIdDB = async (
+    userId: string,
+    options: {
+        sort?: string;
+        start?: number;
+        limit?: number;
+        where?: Record<string, any>;
+    } = {}
+): Promise<{ data: Card[]; total: number } | null> => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+    try {
+        dbLogger.info(`Connecting to database to retrieve cards for userId: ${userId}`);
+        await client.connect();
+        const db = client.db(dbname);
+
+        const query = { userId, ...options.where };
+        const sortObj: any = {};
+
+        if (options.sort) {
+            const [field, direction] = options.sort.split(':');
+            sortObj[field] = direction === 'desc' ? -1 : 1;
+        }
+
+        const collection = db.collection("cards");
+
+        // const total = await collection.countDocuments(query);
+
+        const data = await collection
+            .find(query)
+            .skip(options.start || 0)
+            .limit(options.limit || 20)
+            .sort(sortObj)
+            .toArray();
+
+        dbLogger.info(`Found ${data.length} card(s) for userId: ${userId}`);
+        return data;
+    } catch (error) {
+        dbLogger.error({ message: "Error retrieving cards by userId", userId, error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Database connection closed");
+    }
+};
+
+/**
  * Creates a hash mapping for a card.
  * @async
  * @function createHashMappingDB

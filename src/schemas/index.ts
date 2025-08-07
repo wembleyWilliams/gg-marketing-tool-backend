@@ -8,6 +8,7 @@ import {
     GraphQLInputObjectType,
     GraphQLBoolean, GraphQLList
 } from 'graphql';
+import GraphQLJSON from 'graphql-type-json';
 
 import * as db from "../database"
 import logger from "../logger/logger"
@@ -24,7 +25,11 @@ import {
     deleteHashMappingDB,
     deleteSocialDB,
     deleteUserDB,
-    deleteVCardDB, getCardHashMappingByCardIdDB, getCardHashMappingByIdDB, getCardHashMappingsByCardIdDB,
+    deleteVCardDB,
+    getAllCardsByUserIdDB,
+    getCardHashMappingByCardIdDB,
+    getCardHashMappingByIdDB,
+    getCardHashMappingsByCardIdDB,
     getHashMappingByHashDB,
     getVCardDB,
     listHashMappingsDB,
@@ -650,6 +655,14 @@ const CardResponseType = new GraphQLObjectType( {
     }),
 })
 
+export const CardsByUserIdResultType = new GraphQLObjectType({
+    name: "CardsByUserIdResult",
+    fields: () => ({
+        data: { type: GraphQLList(CardType) },
+        total: { type: GraphQLInt },
+    }),
+});
+
 const CardInputType = new GraphQLInputObjectType({
     name: 'CardInput',
     fields: () => ({
@@ -841,8 +854,27 @@ const QueryType = new GraphQLObjectType({
                 } else {
                     schemaLogger.error('Either \'id\' or \'userId\' must be provided.')
                     throw new Error("Either 'id' or 'userId' must be provided.");
-
                 }
+            }
+        },
+        cardsByUserId: {
+          type: GraphQLList(CardType),
+            args: {
+                userId: { type: GraphQLString },
+                sort: { type: GraphQLString },         // e.g. "createdAt:desc"
+                start: { type: GraphQLInt },           // offset
+                limit: { type: GraphQLInt },           // max results
+                where: { type: GraphQLJSON }           // additional filters (status, businessId, etc.)
+            },
+            resolve: async (parent, args, context) => {
+                const { userId, sort, start = 0, limit = 20, where = {} } = args;
+
+                if (!userId) {
+                    schemaLogger.error("'userId' must be provided.");
+                    throw new Error("'userId' must be provided.");
+                }
+
+               return await db.getAllCardsByUserIdDB(userId, { sort, start, limit, where });
             }
         },
         cardHashMapping: {
