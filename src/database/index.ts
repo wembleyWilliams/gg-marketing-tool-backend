@@ -1,6 +1,6 @@
 import logger from '../logger/logger';
 import {ObjectId} from "mongodb";
-import {BusinessData, UserData, VCardData, Card} from "../common/types";
+import {BusinessData, UserData, VCardData, Card, HashMap} from "../common/types";
 
 const dbLogger = logger.child({context: 'databaseService'})
 const MongoClient = require('mongodb').MongoClient;
@@ -1191,6 +1191,65 @@ export const listCardsDB = async () => {
 };
 
 /**
+ * Retrieves all card identifiers (hash mappings) associated with a user ID, with optional pagination, sorting, and filters.
+ *
+ * @param {string} userId - The user ID to filter by.
+ * @param {Object} options - Optional query parameters.
+ * @param {string} [options.sort] - Sort string like "createdAt:desc".
+ * @param {number} [options.start=0] - Pagination start index.
+ * @param {number} [options.limit=20] - Max number of results to return.
+ * @param {Object} [options.where={}] - Additional filter conditions.
+ * @returns {Promise<{ data: HashMap[]; total: number } | null>} Object containing array of identifiers and total count.
+ */
+export const getAllCardIdentifiersByUserIdDB = async (
+    userId: string,
+    options: {
+        sort?: string;
+        start?: number;
+        limit?: number;
+        where?: Record<string, any>;
+    } = {}
+): Promise<{ data: HashMap[]; total: number } | null> => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+    try {
+        dbLogger.info(`Connecting to database to retrieve card identifiers for userId: ${userId}`);
+        await client.connect();
+        const db = client.db(dbname);
+
+        const query = { userId, ...options.where };
+        const sortObj: any = {};
+
+        if (options.sort) {
+            const [field, direction] = options.sort.split(":");
+            sortObj[field] = direction === "desc" ? -1 : 1;
+        }
+
+        const collection = db.collection("cardHashMappings");
+
+        const total = await collection.countDocuments(query);
+
+        const data = await collection
+            .find(query)
+            .skip(options.start || 0)
+            .limit(options.limit || 20)
+            .sort(sortObj)
+            .project({ _id: 0, cardId: 1, hash: 1, identifier: 1 }) // Only return necessary fields
+            .toArray();
+
+        dbLogger.info(`Found ${data.length} card identifier(s) for userId: ${userId}`);
+        return { data, total };
+    } catch (error) {
+        dbLogger.error({ message: "Error retrieving card identifiers by userId", userId, error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Database connection closed");
+    }
+};
+
+
+/**
  * Retrieves all cards associated with a user ID, supporting pagination, sorting, and filtering.
  *
  * @param {string} userId - The user ID to filter by.
@@ -1270,11 +1329,13 @@ export const getAllCardsByUserIdDB = async (
  * @param {string} mappingData.cardId - Card ID to map
  * @param {string} mappingData.identifier - Short identifier
  * @param {string} mappingData.hash - Full hash value
+ * @param {string} mappingData.userId - Attached User
  * @returns {Promise<any>} Insert result
  * @throws {Error} If database operation fails
  */
 export const createHashMappingDB = async (mappingData: {
     cardId: string | undefined;
+    userId: string;
     identifier: string;
     hash: string
 }): Promise<any> => {
@@ -1733,6 +1794,253 @@ export const listCardHashMappingsDB = async () => {
         return cardHashMappings;
     } catch (error) {
         dbLogger.error({ message: 'Error listing CardHashMappings', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Creates an activity record.
+ * @async
+ * @function createActivityDB
+ * @param {any} activityData - Activity data to create
+ * @returns {Promise<any>} Insert result
+ * @throws {Error} If database operation fails
+ */
+export const createActivityDB = async (activityData: any) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Activities Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const result = await db.collection('activities').insertOne(activityData);
+        dbLogger.info('Activity created:', result);
+        return result;
+    } catch (error) {
+        dbLogger.error({ message: 'Error creating Activity', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Gets an activity by ID.
+ * @async
+ * @function getActivityByIdDB
+ * @param {string} activityId - Activity ID to retrieve
+ * @returns {Promise<any>} Activity document
+ * @throws {Error} If database operation fails
+ */
+export const getActivityByIdDB = async (activityId: string) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Activities Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const activity = await db.collection('activities').findOne({ _id: new ObjectId(activityId) });
+        dbLogger.info(`Activity found: ${activity._id}`);
+        return activity;
+    } catch (error) {
+        dbLogger.error({ message: 'Error retrieving Activity', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Gets activities by card ID.
+ * @async
+ * @function getActivitiesByCardIdDB
+ * @param {string} cardId - Card ID to search for
+ * @returns {Promise<any[]>} Array of activity documents
+ * @throws {Error} If database operation fails
+ */
+export const getActivitiesByCardIdDB = async (cardId: string) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Activities Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const activities = await db.collection('activities').find({ cardId }).toArray();
+        dbLogger.info('Activities found:', activities);
+        return activities;
+    } catch (error) {
+        dbLogger.error({ message: 'Error retrieving Activities by cardId', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Gets activities by user ID.
+ * @async
+ * @function getActivitiesByUserIdDB
+ * @param {string} userId - User ID to search for
+ * @returns {Promise<any[]>} Array of activity documents
+ * @throws {Error} If database operation fails
+ */
+export const getActivitiesByUserIdDB = async (userId: string) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Activities Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const activities = await db.collection('activities').find({ userId: new ObjectId(userId) }).toArray();
+        dbLogger.info(`Activities for userId ${userId} found (${ activities.length}) activities`);
+        return activities;
+    } catch (error) {
+        dbLogger.error({ message: 'Error retrieving Activities by userId', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Gets activities by business ID.
+ * @async
+ * @function getActivitiesByBusinessIdDB
+ * @param {string} businessId - Business ID to search for
+ * @returns {Promise<any[]>} Array of activity documents
+ * @throws {Error} If database operation fails
+ */
+export const getActivitiesByBusinessIdDB = async (businessId: string) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Activities Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const activities = await db.collection('activities').find({ businessId: new ObjectId(businessId) }).toArray();
+        dbLogger.info(`Activities for businessId ${businessId} found (${ activities.length}) activities`);
+        return activities;
+    } catch (error) {
+        dbLogger.error({ message: 'Error retrieving Activities by businessId', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Gets activities by type (e.g., "card", "user", "business").
+ * @async
+ * @function getActivitiesByTypeDB
+ * @param {string} type - Activity type to search for
+ * @returns {Promise<any[]>} Array of activity documents
+ * @throws {Error} If database operation fails
+ */
+export const getActivitiesByTypeDB = async (type: string) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Activities Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const activities = await db.collection('activities').find({ type }).toArray();
+        dbLogger.info(`Activities of type ${type} found:`, activities);
+        return activities;
+    } catch (error) {
+        dbLogger.error({ message: `Error retrieving Activities by type: ${type}`, error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Updates an activity.
+ * @async
+ * @function updateActivityDB
+ * @param {string} activityId - Activity ID to update
+ * @param {Partial<any>} updatedActivity - Fields to update
+ * @returns {Promise<any>} Update result
+ * @throws {Error} If database operation fails
+ */
+export const updateActivityDB = async (activityId: string, updatedActivity: Partial<any>) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Activities Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const result = await db.collection('activities').updateOne(
+            { _id: new ObjectId(activityId) },
+            { $set: updatedActivity },
+            { upsert: false }
+        );
+        dbLogger.info('Activity updated:', result);
+        return result;
+    } catch (error) {
+        dbLogger.error({ message: 'Error updating Activity', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Deletes an activity.
+ * @async
+ * @function deleteActivityDB
+ * @param {string} activityId - Activity ID to delete
+ * @returns {Promise<any>} Delete result
+ * @throws {Error} If database operation fails
+ */
+export const deleteActivityDB = async (activityId: string) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Activities Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const result = await db.collection('activities').deleteOne({ _id: new ObjectId(activityId) });
+        dbLogger.info('Activity deleted:', result);
+        return result;
+    } catch (error) {
+        dbLogger.error({ message: 'Error deleting Activity', error });
+        return error;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Lists all activities.
+ * @async
+ * @function listActivitiesDB
+ * @returns {Promise<any[]>} Array of activity documents
+ * @throws {Error} If database operation fails
+ */
+export const listActivitiesDB = async () => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Activities Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const activities = await db.collection('activities').find().toArray();
+        dbLogger.info('Activities found:', activities);
+        return activities;
+    } catch (error) {
+        dbLogger.error({ message: 'Error listing Activities', error });
         return null;
     } finally {
         await client.close();

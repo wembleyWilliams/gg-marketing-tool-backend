@@ -360,3 +360,17 @@ interface DeviceInfo {
     browser?: string;
     ip?: string;
 }
+
+/**
+ * Interface representing the hash table
+ * @interface HashMap
+ * @property {string} [cardId] - Card ID
+ * @property {string} [hash] - Hash generated for the newly created card
+ * @property {string} [identifier] - Shortened ID used for defining different cards
+ */
+export interface HashMap {
+    _id: string;
+    cardId: string;
+    hash: string;
+    identifier: string;
+}

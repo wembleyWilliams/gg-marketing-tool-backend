@@ -63,10 +63,11 @@ export const createCard = async (req: Request, res: Response): Promise<Response 
         // Create hash mapping and send success response
         const cardId = response.insertedId.toString();
         const hashedId = await hashHandler.createSHA256Hash(cardId);
-        await createHashMappingDB({cardId, hash: hashedId, identifier});
+        const userId = cardData.userId;
+        await createHashMappingDB({cardId, userId, hash: hashedId, identifier});
 
         return res.status(200).send({
-            message: 'Success! Card created: Card created successfully',
+            message: 'Success! : Card created successfully',
             hashedId,
             identifier
         });

@@ -26,6 +26,11 @@ import {
     deleteSocialDB,
     deleteUserDB,
     deleteVCardDB,
+    getActivitiesByBusinessIdDB,
+    getActivitiesByCardIdDB, getActivitiesByTypeDB,
+    getActivitiesByUserIdDB,
+    getActivityByIdDB,
+    getAllCardIdentifiersByUserIdDB,
     getAllCardsByUserIdDB,
     getCardHashMappingByCardIdDB,
     getCardHashMappingByIdDB,
@@ -622,6 +627,34 @@ const TapType = new GraphQLObjectType({
     })
 });
 
+/**
+ *  Define the Metadata type
+ */
+
+const MetadataType = new GraphQLObjectType({
+    name: 'ActivityMetadata',
+    fields: () => ({
+        viewCount: { type: GraphQLInt },
+        connectionIds: { type: new GraphQLList(GraphQLString) }
+    })
+});
+
+/**
+ *  Define the Activity type
+ */
+
+const ActivityType = new GraphQLObjectType({
+    name: 'Activity',
+    fields: () => ({
+        _id: { type: new GraphQLNonNull(GraphQLID) },
+        cardId: { type: new GraphQLNonNull(GraphQLString) },
+        userId: { type: new GraphQLNonNull(GraphQLString) },
+        actionType: { type: new GraphQLNonNull(GraphQLString) },
+        description: { type: new GraphQLNonNull(GraphQLString) },
+        metadata: { type: MetadataType },
+        createdAt: { type: new GraphQLNonNull(GraphQLString) }
+    })
+});
 
 
 /**
@@ -713,6 +746,7 @@ const CardHashMappingType = new GraphQLObjectType({
     name: 'CardHashMapping',
     fields: ()=>({
         id: { type: GraphQLID }, // Equivalent to "_id"
+        userId: {type: GraphQLID},
         cardId: { type: GraphQLID }, // Reference to the Card's ID
         hash: { type: GraphQLString }, // Hash associated with the Card
         identifier: { type: GraphQLString } // Unique identifier for the Card
@@ -778,6 +812,40 @@ const UpdateVCardResponseType = new GraphQLObjectType({
 const QueryType = new GraphQLObjectType({
     name: 'Query',
     fields: {
+        activity: {
+          type: ActivityType,
+            args:{
+                id: { type: GraphQLID },
+                _id: { type: GraphQLID },
+            },
+            resolve: async (parent, args, context) => {
+                if(args.id){
+                    return await getActivityByIdDB(args.id)
+                } else if (args._id){
+                    return await getActivityByIdDB(args._id)
+                }
+            }
+        },
+        activities: {
+            type: new GraphQLList(ActivityType),
+            args:{
+                cardId: { type: GraphQLID },
+                userId: { type: GraphQLID },
+                businessId: { type: GraphQLID },
+                type: { type: GraphQLString }
+            },
+            resolve: async (parent, args, context) => {
+                if (args.cardId){
+                    return await getActivitiesByCardIdDB(args.cardId)
+                }else if (args.userId){
+                    return await getActivitiesByUserIdDB(args.userId)
+                } else if (args.businessId){
+                    return await getActivitiesByBusinessIdDB(args.businessId)
+                } else if(args.type){
+                    return await getActivitiesByTypeDB(args.type)
+                }
+            }
+        },
         socials: {
             type: new GraphQLList(SocialProfileType),
             args: {
@@ -855,6 +923,21 @@ const QueryType = new GraphQLObjectType({
                     schemaLogger.error('Either \'id\' or \'userId\' must be provided.')
                     throw new Error("Either 'id' or 'userId' must be provided.");
                 }
+            }
+        },
+        cardsIdByUserId:{
+            type: new GraphQLList(GraphQLString), // List of identifier strings
+            args: {
+                userId: { type: GraphQLString }
+            },
+            resolve: async (parent, args, context) => {
+                if (!args.userId) {
+                    schemaLogger.error("userId must be provided.");
+                    throw new Error("userId must be provided.");
+                }
+
+                const mappings = await db.getAllCardIdentifiersByUserIdDB(args.userId);
+                return mappings.data.map(entry => entry.identifier); // Return only identifiers
             }
         },
         cardsByUserId: {
@@ -1190,9 +1273,10 @@ const MutationType = new GraphQLObjectType({
                 identifier: { type: GraphQLString },
             },
             resolve: async (_parent, args: any) => {
-                const {cardId, hash, identifier} = args
+                const {cardId, hash, identifier, userId} = args
                 return await createHashMappingDB(
                     {
+                        userId,
                         cardId,
                         hash,
                         identifier});
