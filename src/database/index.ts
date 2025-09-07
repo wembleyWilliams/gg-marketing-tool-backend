@@ -1,6 +1,7 @@
 import logger from '../logger/logger';
 import {ObjectId} from "mongodb";
 import {BusinessData, UserData, VCardData, Card, HashMap} from "../common/types";
+import {utils} from "../utils";
 
 const dbLogger = logger.child({context: 'databaseService'})
 const MongoClient = require('mongodb').MongoClient;
@@ -1190,6 +1191,29 @@ export const listCardsDB = async () => {
     }
 };
 
+export const listCardsForUserDB = async (userId) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to Card Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        // Count how many cards belong to this user
+        const cardCount = await db.collection("cards").countDocuments({
+            userId: userId
+        });
+
+        dbLogger.info(`User ${userId} has ${cardCount} cards`);
+        return cardCount;
+    } catch (error) {
+        dbLogger.error({ message: "Error counting Cards for user", error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+};
+
 /**
  * Retrieves all card identifiers (hash mappings) associated with a user ID, with optional pagination, sorting, and filters.
  *
@@ -2047,6 +2071,65 @@ export const listActivitiesDB = async () => {
         dbLogger.info("Connection closed");
     }
 };
+
+export const getTotalTapsByUser = async (userId: string) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+
+    dbLogger.info("Connecting to Cards Database");
+    await client.connect();
+    const db = client.db(dbname);
+    const result = await db.collection("cards").aggregate([
+        { $match: { userId: userId } },
+        { $group: {
+                _id: "$userId",
+                totalTaps: { $sum: "$tapCount" }
+            }}
+    ]).toArray();
+
+    return result.length > 0 ? result[0].totalTaps : 0;
+}
+
+export const getUserLastTapDB = async (userId: string): Promise<string> => {
+    const client = new MongoClient(uri, {
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+    } as any);
+
+    try {
+        await client.connect();
+        const db = client.db(dbname);
+
+        // grab all cards for this user
+        const cards = await db.collection("cards")
+            .find({ userId: userId })
+            .toArray();
+
+        if (!cards || cards.length === 0) {
+            return null; // no cards = no taps
+        }
+
+        // flatten taps from all cards
+        const allTaps = cards.flatMap(card => card.taps || []);
+
+        if (allTaps.length === 0) {
+            return null; // no taps recorded
+        }
+
+        // use util to calculate the last tap
+        return utils.getLastTapDate(allTaps);
+
+    } catch (err) {
+        dbLogger?.error("Error fetching user last tap", err);
+        throw err;
+    } finally {
+        await client.close();
+    }
+};
+
+// export const aggregateDashboardData = async (userId: string) => {
+//     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+//
+// }
 
 /**
  * Aggregates data across collections for a card.

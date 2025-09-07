@@ -142,5 +142,26 @@ export const utils = {
         };
 
         return jwt.sign(payload, JWT_SECRET, { expiresIn: '1h' });
+    },
+    getLastTapDate: (taps: Array<{ cardId: string; timestamp: string | Date }>): string | null => {
+        if (!taps || taps.length === 0) {
+            return null;
+        }
+
+        let latestTap: Date | null = null;
+
+        for (const tap of taps) {
+            const tapDate = new Date(tap.timestamp);
+
+            if (!latestTap || tapDate > latestTap) {
+                latestTap = tapDate;
+            }
+        }
+
+        const date = new Date(latestTap)
+        console.log(date)
+
+        return latestTap ? latestTap.toString() : null;
     }
+
 };

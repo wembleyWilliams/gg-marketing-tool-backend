@@ -35,8 +35,8 @@ import {
     getCardHashMappingByCardIdDB,
     getCardHashMappingByIdDB,
     getCardHashMappingsByCardIdDB,
-    getHashMappingByHashDB,
-    getVCardDB,
+    getHashMappingByHashDB, getTotalTapsByUser, getUserLastTapDB,
+    getVCardDB, listCardsForUserDB,
     listHashMappingsDB,
     updateBusinessDB,
     updateCardDB,
@@ -806,15 +806,48 @@ const UpdateVCardResponseType = new GraphQLObjectType({
     },
 });
 
+const DashboardType = new GraphQLObjectType({
+    name: 'Dashboard',
+    fields: {
+        tapsByUserId: { type: GraphQLInt},
+        activities: { type: new GraphQLList(ActivityType)},
+        cardCount: { type: GraphQLInt},
+        userLastTap: { type: GraphQLString}
+    }
+})
+
 /**
  * Define the Query type
  */
 const QueryType = new GraphQLObjectType({
     name: 'Query',
     fields: {
+        getUserLastTap: {
+            type: GraphQLString, // returning ISO string for a Date, can change to custom Date scalar
+            args: { id: { type: new GraphQLNonNull(GraphQLID) } },
+            resolve: async (parent, args, context) => {
+                if (!args.id) return null;
+
+                const lastTap = await getUserLastTapDB(args.id);
+                return lastTap ? lastTap : null;
+            }
+        },
+        getDashboard: {
+            type: DashboardType,
+            args: { id: { type: new GraphQLNonNull(GraphQLID) } },
+            resolve: async (parent, args, context) => {
+                if(args.id){
+                    const activities = await getActivitiesByUserIdDB(args.id)
+                    const tapsByUserId = await getTotalTapsByUser(args.id)
+                    const cardCount = await listCardsForUserDB(args.id)
+                    const userLastTap = await getUserLastTapDB(args.id)
+                    return {tapsByUserId, activities, cardCount, userLastTap}
+                }
+            }
+        },
         activity: {
           type: ActivityType,
-            args:{
+            args: {
                 id: { type: GraphQLID },
                 _id: { type: GraphQLID },
             },
