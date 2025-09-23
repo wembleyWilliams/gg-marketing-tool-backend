@@ -1,3 +1,6 @@
+import business from "../router/business";
+import {ObjectId} from "mongodb";
+
 /**
  * Interface representing a physical address
  * @interface Address
@@ -181,9 +184,18 @@ export interface UserData {
     phone: string;
     profilePicture?: Media;
     password?: string | null;
-    authProvider: string;
-    authProviderId: string;
+    authProvider?: string;
+    authProviderId?: string;
     firstLogin: boolean;
+    isActive: boolean;
+    emailVerified: boolean;
+    cards: string [];
+}
+
+export interface RegistrationData {
+    userData: UserData
+    businessData: BusinessData
+    vcardData: VCardData
 }
 
 /**
@@ -270,7 +282,7 @@ export interface ApplicationState {
  * @property {string} version - vCard version
  */
 export interface VCardData {
-    vcardOwnerType: string;
+    vcardOwnerType?: string;
     birthday: string;
     cellPhone: string;
     pagerPhone?: string;
@@ -373,4 +385,18 @@ export interface HashMap {
     cardId: string;
     hash: string;
     identifier: string;
+}
+
+
+/**
+ * Represents a token document stored in the database.
+ */
+export interface TokenData {
+    _id?: ObjectId;         // MongoDB document ID (optional on insert)
+    userId: ObjectId;       // Associated user ID
+    type: string;           // Token type (e.g., "emailVerification", "passwordReset")
+    tokenHash: string;      // Hashed token value
+    expiresAt: Date;        // Expiration date for the token
+    createdAt: Date;        // Creation timestamp
+    used: boolean;          // Indicates if the token has been used
 }

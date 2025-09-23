@@ -25,6 +25,7 @@
   "dependencies": {
     "@types/bcrypt": "^5.0.0",
     "@types/crypto-js": "^4.2.2",
+    "@types/nodemailer": "^7.0.1",
     "@types/uuid": "^8.3.4",
     "bcrypt": "^5.0.1",
     "bcryptjs": "^3.0.2",
@@ -47,6 +48,7 @@
     "mongoose": "^6.0.12",
     "nanoid": "^3.0.0",
     "nanoid-dictionary": "^4.3.0",
+    "nodemailer": "^7.0.6",
     "passport": "^0.5.2",
     "passport-google-oauth": "^2.0.0",
     "passport-google-oauth20": "^2.0.0",

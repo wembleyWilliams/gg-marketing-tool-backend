@@ -1,7 +1,8 @@
 import logger from "../../../logger/logger";
 import {Request, Response} from "express";
-import {generateTempPassword, loginUser, setNewPassword, verifyTempPassword} from "../index";
+import {generateTempPassword, loginUser, registerUser, setNewPassword, verifyEmail, verifyTempPassword} from "../index";
 import {next} from "cheerio/lib/api/traversing";
+import {utils} from "../../../utils";
 
 const express = require('express')
 const passport = require('passport');
@@ -160,5 +161,11 @@ auth.post('/verify-temp-password', verifyTempPassword);
  * // Body: { email: "user@example.com" }
  */
 auth.post('/generate-temp-password', generateTempPassword);
+
+auth.post('/register', registerUser);
+
+auth.post('/verify-email', verifyEmail);
+
+auth.post('/resend-verification', utils.sendEmailVerificationEmail);
 
 export default auth;

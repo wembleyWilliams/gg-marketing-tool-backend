@@ -1,6 +1,6 @@
 import logger from '../logger/logger';
 import {ObjectId} from "mongodb";
-import {BusinessData, UserData, VCardData, Card, HashMap} from "../common/types";
+import {BusinessData, UserData, VCardData, Card, HashMap, TokenData} from "../common/types";
 import {utils} from "../utils";
 
 const dbLogger = logger.child({context: 'databaseService'})
@@ -23,6 +23,182 @@ const dbname = process.env.MONGODB_DB_NAME as string;
  * - Hash mappings
  */
 
+
+/**
+ * Creates a new token in the database.
+ * @async
+ * @function createTokenDB
+ * @param {TokenData} tokenDetails - The token details to create
+ * @returns {Promise<InsertOneResult>} MongoDB insert result
+ * @throws {Error} If database operation fails
+ */
+export const createTokenDB = async (tokenDetails: TokenData) => {
+    const client = new MongoClient(encodeURI(uri), {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+    });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+
+        const db = client.db(dbname);
+        const result = await db.collection("tokens").insertOne(tokenDetails);
+        dbLogger.info(`Token created: ${result.insertedId.toString()}`);
+        return result;
+    } catch (error) {
+        dbLogger.error({ message: "Error creating token", error });
+        throw error;
+    } finally {
+        await client.close();
+        dbLogger.info("Database connection closed");
+    }
+};
+
+/**
+ * Retrieves a token by ID.
+ * @async
+ * @function getTokenByIdDB
+ * @param {string} tokenId - Token ID to retrieve
+ * @returns {Promise<TokenData|null>} Token document or null
+ * @throws {Error} If database operation fails
+ */
+export const getTokenByIdDB = async (tokenId: string) => {
+    const client = new MongoClient(encodeURI(uri), {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+    });
+    try {
+        await client.connect();
+        const db = client.db(dbname);
+        const objectId = new ObjectId(tokenId);
+
+        dbLogger.info("Database connected, retrieving token");
+
+        const result = await db.collection("tokens").findOne({ _id: objectId });
+        if (result) {
+            dbLogger.info("Token retrieved: " + result._id);
+            return result;
+        } else {
+            dbLogger.info("Token not found");
+            return null;
+        }
+    } catch (error: any) {
+        dbLogger.error(`Error occurred: ${error.message}`);
+        throw error;
+    } finally {
+        await client.close();
+    }
+};
+
+/**
+ * Retrieves a token by user ID.
+ * @async
+ * @function getTokenByUserIdDB
+ * @param {string} userId - User ID to find token for
+ * @returns {Promise<TokenData|null>} Token document or null
+ * @throws {Error} If database operation fails
+ */
+export const getTokenByUserIdDB = async (userId: string) => {
+    const client = new MongoClient(encodeURI(uri), {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+    });
+    try {
+        await client.connect();
+        const db = client.db(dbname);
+
+        dbLogger.info("Database connected, retrieving token by userId");
+
+        const result = await db.collection("tokens").findOne({ userId: new ObjectId(userId) });
+        if (result) {
+            dbLogger.info("Token retrieved: " + result._id);
+            return result;
+        } else {
+            dbLogger.info("Token not found");
+            return null;
+        }
+    } catch (error: any) {
+        dbLogger.error(`Error occurred: ${error.message}`);
+        throw error;
+    } finally {
+        await client.close();
+    }
+};
+
+/**
+ * Updates a token record in the database.
+ * @async
+ * @function updateTokenDB
+ * @param {string|ObjectId} id - Token ID to update
+ * @param {Partial<TokenData>} updateDetails - Fields to update
+ * @returns {Promise<UpdateResult>} MongoDB update result
+ * @throws {Error} If database operation fails
+ */
+export const updateTokenDB = async (id: string | ObjectId, updateDetails: Partial<TokenData>) => {
+    const client = new MongoClient(encodeURI(uri), {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+    });
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+
+        const db = client.db(dbname);
+        const objectId = typeof id === "string" ? new ObjectId(id) : id;
+
+        dbLogger.info(`Updating token with ID: ${id}`);
+
+        // Destructure to remove _id from updates
+        const { _id, ...updateData } = updateDetails;
+
+        const result = await db.collection("tokens").updateOne(
+            { _id: objectId },
+            { $set: { ...updateData } }
+        );
+
+        dbLogger.info(`Token updated (${id}) successfully!`);
+        return result;
+    } catch (error) {
+        dbLogger.error({ message: "Error updating token", error });
+        throw error;
+    } finally {
+        await client.close();
+        dbLogger.info("Database connection closed");
+    }
+};
+
+/**
+ * Deletes a token record from the database.
+ * @async
+ * @function deleteTokenDB
+ * @param {string} id - Token ID to delete
+ * @returns {Promise<DeleteResult>} MongoDB delete result
+ * @throws {Error} If database operation fails
+ */
+export const deleteTokenDB = async (id: string) => {
+    const client = new MongoClient(encodeURI(uri), {
+        useNewUrlParser: true,
+        useUnifiedTopology: true
+    });
+    const objectId = new ObjectId(id);
+
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+
+        const db = client.db(dbname);
+        const result = await db.collection("tokens").deleteOne({ _id: objectId });
+        dbLogger.info("Token successfully removed");
+        return result;
+    } catch (error) {
+        dbLogger.error({ message: "Error removing token", error });
+        throw error;
+    } finally {
+        await client.close();
+        dbLogger.info("Database connection closed");
+    }
+};
+
 /**
  * Creates a new business in the database.
  * @async
@@ -40,11 +216,10 @@ export const createBusinessDB = async (businessDetails: BusinessData) => {
     try {
         dbLogger.info("Connecting to Database");
         await client.connect();
-        dbLogger.info("Database connected, inserting business data");
 
         const db = client.db(dbname);
         const result = await db.collection("businesses").insertOne(businessDetails);
-        dbLogger.info(`Business successfully created ${result.insertedId.toString()}`);
+        dbLogger.info(`Business created: ${result.insertedId.toString()}`);
         return result;
     } catch (error) {
         dbLogger.error({message: 'Error creating business', error});
@@ -618,6 +793,9 @@ export const findOrCreateOAuthUserDB = async (
 
         dbLogger.info("User not found. Creating new user");
         const newUser: UserData = {
+            cards: [],
+            emailVerified: false,
+            isActive: true,
             address: {
                 street: "",
                 city: "",
@@ -671,7 +849,11 @@ export const getUserByIdDB = async (userId: string) => {
         const db = client.db(dbname);
 
         const user = await db.collection('users').findOne({_id: new ObjectId(userId)});
-        dbLogger.info('User found:', user);
+        if (user) {
+            dbLogger.info('User found:', user._id);
+        } else {
+            dbLogger.info("No user found with that email");
+        }
         return user;
 
     } catch (error) {
@@ -681,7 +863,7 @@ export const getUserByIdDB = async (userId: string) => {
         await client.close();
         dbLogger.info("Connection closed");
     }
-};
+}
 
 // READ User by email (GET)
 /**
@@ -700,8 +882,13 @@ export const getUserByEmailDB = async (userEmail: string) => {
         await client.connect();
         const db = client.db(dbname);
 
-        const user = await db.collection('users').findOne({"email": userEmail});
-        dbLogger.info('User found:', user?._id);
+        const user = await db.collection('users').findOne({ email: userEmail });
+
+        if (user) {
+            dbLogger.info(`User found with userId: ${user._id}`);
+        } else {
+            dbLogger.info("No user found with that email");
+        }
         return user;
 
     } catch (error) {
@@ -710,6 +897,30 @@ export const getUserByEmailDB = async (userEmail: string) => {
     } finally {
         await client.close();
         dbLogger.info("Connection closed");
+    }
+};
+
+/**
+ * Gets a user by their email verification token
+ * @param {string} token - The email verification token
+ * @returns {Promise<any>} User object or null if not found
+ */
+export const getUserByVerificationTokenDB = async (token: string) => {
+    const client = new MongoClient(encodeURI(uri), {useNewUrlParser: true, useUnifiedTopology: true});
+    try {
+        dbLogger.info("Connecting to Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const user = await db.collection('users').findOne({
+            emailVerificationToken: token,
+            emailVerificationTokenExpires: { $gt: new Date() } // Token hasn't expired
+        });
+
+        return user;
+    } catch (error) {
+        console.error('Error getting user by verification token:', error);
+        return null;
     }
 };
 
@@ -812,7 +1023,7 @@ export const listUsersDB = async () => {
         await client.close();
         dbLogger.info("Database connection closed");
     }
-};
+}
 
 /**
  * Performs a simple connection health test with the MongoDB database.
