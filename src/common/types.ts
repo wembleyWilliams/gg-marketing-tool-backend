@@ -189,6 +189,7 @@ export interface UserData {
     firstLogin: boolean;
     isActive: boolean;
     emailVerified: boolean;
+    resetRequired: boolean;
     cards: string [];
 }
 

@@ -1,6 +1,15 @@
 import logger from "../../../logger/logger";
 import {Request, Response} from "express";
-import {generateTempPassword, loginUser, registerUser, setNewPassword, verifyEmail, verifyTempPassword} from "../index";
+import {
+    forgotPassword,
+    generateTempPassword,
+    loginUser,
+    registerUser, requestPasswordReset,
+    resetPassword,
+    setNewPassword,
+    verifyEmail, verifyPasswordReset,
+    verifyTempPassword
+} from "../index";
 import {next} from "cheerio/lib/api/traversing";
 import {utils} from "../../../utils";
 
@@ -166,6 +175,16 @@ auth.post('/register', registerUser);
 
 auth.post('/verify-email', verifyEmail);
 
+auth.post('/verify-password-reset', verifyPasswordReset)
+
 auth.post('/resend-verification', utils.sendEmailVerificationEmail);
+
+auth.post('/reset-password', resetPassword)
+
+auth.post('/request-password-reset', requestPasswordReset)
+
+auth.post('/forgot-password', forgotPassword)
+
+// auth.post('/set-password', setNewPassword)
 
 export default auth;

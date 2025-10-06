@@ -10,7 +10,7 @@ import {
     getUserByEmailDB,
     updateUserDB
 } from "../../database";
-import {RegistrationData} from "../../common/types";
+import {RegistrationData, UserData} from "../../common/types";
 
 const passLogger = logger.child({context: 'passService'});
 
@@ -62,7 +62,7 @@ export const registerUser = async (req: Request, res: Response) => {
             });
         }
 
-        const { email, firstName, lastName, password, phone } = body.userData;
+        const {email, firstName, lastName, password, phone} = body.userData;
 
         if (!email || !firstName || !lastName) {
             return res.status(400).json({
@@ -151,7 +151,7 @@ export const registerUser = async (req: Request, res: Response) => {
 
         // --- Handle businessData (optional) ---
         if (body.businessData) {
-            const createdBusiness = await createBusinessDB({ ...body.businessData, userId: createdUser.insertedId });
+            const createdBusiness = await createBusinessDB({...body.businessData, userId: createdUser.insertedId});
             if (!createdBusiness) {
                 return res.status(500).json({
                     success: false,
@@ -162,7 +162,7 @@ export const registerUser = async (req: Request, res: Response) => {
 
         // --- Handle vcardData (optional) ---
         if (body.vcardData) {
-            const createdVCard = await createVCardDB({ ...body.vcardData, userId: createdUser.insertedId });
+            const createdVCard = await createVCardDB({...body.vcardData, userId: createdUser.insertedId});
             if (!createdVCard) {
                 return res.status(500).json({
                     success: false,
@@ -176,7 +176,7 @@ export const registerUser = async (req: Request, res: Response) => {
             await utils.sendEmailVerificationEmail(normalizedEmail, emailVerificationToken, firstName);
             passLogger.info(`Email verification sent to: ${normalizedEmail}`);
         } catch (emailError) {
-            passLogger.error('Failed to send verification email', { error: emailError, email: normalizedEmail });
+            passLogger.error('Failed to send verification email', {error: emailError, email: normalizedEmail});
             // Don't fail the registration if email sending fails
             // The user account is created but they can request a new verification email
         }
@@ -187,7 +187,10 @@ export const registerUser = async (req: Request, res: Response) => {
                 await utils.sendTempPasswordEmail(normalizedEmail, tempPasswordResult.tempPassword, firstName);
                 passLogger.info(`Temporary password sent to: ${normalizedEmail}`);
             } catch (emailError) {
-                passLogger.error('Failed to send temporary password email', { error: emailError, email: normalizedEmail });
+                passLogger.error('Failed to send temporary password email', {
+                    error: emailError,
+                    email: normalizedEmail
+                });
             }
         }
 
@@ -239,13 +242,18 @@ export const registerUser = async (req: Request, res: Response) => {
  */
 export const loginUser = async (req: Request, res: Response) => {
     try {
-        const { email, password } = req.body;
+        const {email, password} = req.body;
 
         const normalizedEmail = email.toLowerCase().trim();
         const user = await getUserByEmailDB(normalizedEmail);
 
         if (!user) {
-            return res.status(404).json({ success: false, message: 'User not found' });
+            return res.status(404).json({success: false, message: 'User not found'});
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password);
+        if (!isMatch) {
+            return res.status(401).json({success: false, message: 'Incorrect password'});
         }
 
         // Check if email is verified
@@ -274,10 +282,6 @@ export const loginUser = async (req: Request, res: Response) => {
             });
         }
 
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(401).json({ success: false, message: 'Incorrect password' });
-        }
 
         const token = utils.generateJWT(user);
 
@@ -298,13 +302,52 @@ export const loginUser = async (req: Request, res: Response) => {
         });
 
     } catch (error: any) {
-        passLogger.error('Error logging in user', { error: error.message });
+        passLogger.error('Error logging in user', {error: error.message});
         res.status(500).json({
             success: false,
             message: 'Server error during login',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined,
         });
     }
+};
+
+export const forgotPassword = async (req: Request, res: Response) => {
+
+    try {
+        const {email} = req.body;
+
+        const user = await getUserByEmailDB(email);
+        if (!user) {
+            return res.status(404).json({success: false, message: 'User not found'});
+        }
+
+        const token = await utils.generatePasswordResetToken(user._id)
+        if (!token) {
+            return res.status(404).json({success: false})
+        } else {
+            passLogger.info(`Password Token created for user ${email}`)
+            const hash = await bcrypt.hash(token, 12);
+
+            // // Update the user in the DB with the hashed password and firstLogin flag
+            await updateUserDB(user._id, {
+                password: hash,
+                resetRequired: true,
+                firstLogin: false,
+                emailVerified: true,
+                updatedAt: new Date(),
+            } as unknown as Partial<UserData>);
+        }
+
+
+        await utils.sendPasswordResetEmail(email, token, user.firstName)
+
+        return res.status(200).json({success: true, message: 'Password successfully reset!'})
+
+    } catch (error) {
+        passLogger.error('Error setting new password', {error});
+        res.status(500).json({success: false, message: 'Server error setting new password', error});
+    }
+
 };
 
 /**
@@ -398,6 +441,7 @@ export const verifyTempPassword = async (req: Request, res: Response) => {
             return res.status(401).json({success: false, message: 'Invalid temporary password'});
         }
 
+
         passLogger.info(`Temp password verified for ${email}`);
         return res.status(200).json({success: true, message: 'Temporary password verified'});
 
@@ -406,6 +450,35 @@ export const verifyTempPassword = async (req: Request, res: Response) => {
         res.status(500).json({success: false, message: 'Server error verifying temp password', error});
     }
 };
+
+export const verifyPasswordReset = async (req: Request, res: Response) => {
+    try {
+        const {email, tempPassword} = req.body;
+
+        const user = await getUserByEmailDB(email);
+
+        if (!user) {
+            return res.status(404).json({success: false, message: 'User not found'});
+        }
+
+        if (user.resetRequired) {
+            const isMatch = await bcrypt.compare(tempPassword, user.password);
+            if (!isMatch) {
+                return res.status(401).json({success: false, message: 'Invalid temporary password'});
+            }
+            passLogger.info(`Password reset required for ${email}`);
+            return res.status(200).json({success: true, message: 'Temporary password verified'});
+        } else {
+            passLogger.info(`Password reset not required for ${email}`);
+            return res.status(200).json({success: false, message: 'Temporary password verified'});
+
+        }
+
+    } catch (error) {
+        passLogger.error('Error verifying temporary password for reset', {error});
+        res.status(500).json({success: false, message: 'Server error verifying temp password', error});
+    }
+}
 
 /**
  * Generates and emails a temporary password for password reset.
@@ -438,7 +511,6 @@ export const generateTempPassword = async (req: Request, res: Response) => {
     }
 };
 
-
 /**
  * Verifies user's email address using the verification token.
  * @async
@@ -457,7 +529,7 @@ export const generateTempPassword = async (req: Request, res: Response) => {
  */
 export const verifyEmail = async (req: Request, res: Response) => {
     try {
-        const tokenRaw  = req.query.token;
+        const tokenRaw = req.query.token;
         const token = tokenRaw.toString()
 
         if (!token) {
@@ -511,7 +583,7 @@ export const verifyEmail = async (req: Request, res: Response) => {
         });
 
     } catch (error: any) {
-        passLogger.error('Error verifying email', { error: error.message });
+        passLogger.error('Error verifying email', {error: error.message});
         res.status(500).json({
             success: false,
             message: 'Server error during email verification',
@@ -538,7 +610,7 @@ export const verifyEmail = async (req: Request, res: Response) => {
  */
 export const resendVerificationEmail = async (req: Request, res: Response) => {
     try {
-        const { email } = req.body;
+        const {email} = req.body;
 
         if (!email) {
             return res.status(400).json({
@@ -589,7 +661,7 @@ export const resendVerificationEmail = async (req: Request, res: Response) => {
             await utils.sendEmailVerificationEmail(normalizedEmail, emailVerificationToken, user.firstName);
             passLogger.info(`Verification email resent to: ${normalizedEmail}`);
         } catch (emailError) {
-            passLogger.error('Failed to resend verification email', { error: emailError, email: normalizedEmail });
+            passLogger.error('Failed to resend verification email', {error: emailError, email: normalizedEmail});
             return res.status(500).json({
                 success: false,
                 message: 'Failed to send verification email',
@@ -602,7 +674,7 @@ export const resendVerificationEmail = async (req: Request, res: Response) => {
         });
 
     } catch (error: any) {
-        passLogger.error('Error resending verification email', { error: error.message });
+        passLogger.error('Error resending verification email', {error: error.message});
         res.status(500).json({
             success: false,
             message: 'Server error while resending verification email',
@@ -610,3 +682,128 @@ export const resendVerificationEmail = async (req: Request, res: Response) => {
         });
     }
 };
+
+export const requestPasswordReset = async (req: Request, res: Response) => {
+    try {
+        const {email} = req.body
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email is required',
+            });
+        }
+
+        const normalizedEmail = email.toLowerCase().trim();
+        const user = await getUserByEmailDB(normalizedEmail);
+
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid user',
+            });
+        }
+        try {
+            const {tempPassword, hash} = await utils.generateTempPassword(email)
+
+            // Update the user in the DB with the hashed password and firstLogin flag
+            await updateUserDB(user._id, {
+                password: hash,
+                firstLogin: false,
+                emailVerified: true,
+                resetRequired: true,
+                updatedAt: new Date(),
+            } as unknown as Partial<UserData>);
+
+            await utils.sendTempPasswordEmail(email, tempPassword, user.firstName);
+
+            res.status(200).json({
+                success: true,
+                message: 'Request sent and user updated'
+            })
+        } catch (error: any) {
+            passLogger.error('Error requesting password reset', {error: error.message});
+            res.status(500).json({
+                success: false,
+                message: 'Server error while requesting password reset',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+            })
+        }
+
+    } catch (error: any) {
+        passLogger.error('Error requesting password reset', {error: error.message});
+        res.status(500).json({
+            success: false,
+            message: 'Server error while requesting password reset',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        })
+    }
+}
+
+export const resetPassword = async (req: Request, res: Response) => {
+    try {
+
+        const {email, password} = req.body
+
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email is required',
+            });
+        }
+        if (!password) {
+            return res.status(401).json({
+                success: false,
+                message: 'Password is required'
+            })
+        }
+
+        const normalizedEmail = email.toLowerCase().trim();
+        const user = await getUserByEmailDB(normalizedEmail);
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'Invalid User',
+            });
+        } else {
+            // const {tempPassword} = await utils.generateTempPassword(req.body.email);
+            const hashedPassword = await bcrypt.hash(password, 12);
+
+            // Update the user document
+            await updateUserDB(user._id, {
+                password: hashedPassword,
+                resetRequired: false,
+                firstLogin: false,
+                updatedAt: new Date(),
+            });
+
+            // Send password reset email
+            try {
+                passLogger.info(`Password successfully reset for ${normalizedEmail}`);
+                return res.status(200).json({
+                    success: true,
+                    message: 'Password reset successfully!'
+                })
+            } catch (emailError) {
+                passLogger.error('Failed to successfully reset password', {
+                    error: emailError,
+                    email: normalizedEmail
+                });
+                return res.status(500).json({
+                    success: false,
+                    message: 'Failed to send verification email',
+                });
+            }
+        }
+
+    } catch (error: any) {
+        passLogger.error('Error sending password reset email', {error: error.message});
+        res.status(500).json({
+            success: false,
+            message: 'Server error while sending password reset email',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+        })
+    }
+}
+

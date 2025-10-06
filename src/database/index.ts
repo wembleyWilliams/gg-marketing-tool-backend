@@ -815,6 +815,7 @@ export const findOrCreateOAuthUserDB = async (
             profilePicture: photo[0],
             createdAt: new Date(),
             updatedAt: new Date(),
+            resetRequired: false,
             firstLogin: true
         };
 
@@ -952,7 +953,7 @@ export const updateUserDB = async (userId: string, updatedUser: Partial<UserData
             {"upsert": false}
         );
 
-        dbLogger.info('User updated:', result);
+        dbLogger.info('User updated:', result.upsertedId);
         return result;
 
     } catch (error) {
