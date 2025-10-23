@@ -104,6 +104,7 @@ export interface Card {
     tapCount: number;
     lastTap: Date;
     taps: Tap[];
+    claimed: boolean;
     createdAt: Date;
     deactivatedAt?: Date;
 }

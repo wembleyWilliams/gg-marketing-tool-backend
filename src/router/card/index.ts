@@ -4,15 +4,17 @@ import {
     aggregateDataDB,
     createCardDB,
     createHashMappingDB,
-    deleteCardDB,
-    getCardByIdDB, getCardHashMappingByIdDB,
-    updateCardDB
+    deleteCardDB, getCardByCardIdentifierDB,
+    getCardByIdDB, getCardHashMappingByIdDB, getCardHashMappingsByCardIdDB, getUserByIdDB,
+    updateCardDB, updateUserDB
 } from "../../database";
 import {Card, Tap} from "../../common/types";
 import {customAlphabet} from "nanoid";
 import {nolookalikes} from "nanoid-dictionary";
 import hashHandler from "../../utils/cardHashMapping";
 import {verifyBusinessId} from "../../utils/verifyBusinessId";
+import {getUserById} from "../user";
+import card from "./routes";
 
 const cardsLogger = logger.child({context: 'cardsService'});
 /**
@@ -34,6 +36,7 @@ const cardsLogger = logger.child({context: 'cardsService'});
  *   // other card properties...
  * }
  */
+//TODO: Update to not need a userId or BusinessId, so it can be blank card
 export const createCard = async (req: Request, res: Response): Promise<Response | void> => {
     const cardData = req.body;
 
@@ -196,6 +199,212 @@ export const deleteCard = async (req: Request, res: Response): Promise<void> => 
     }
 };
 
+export const claimDevice = async (req: Request, res: Response) => {
+    const {cardIdentifier, userId} = req.body
+
+    if (!cardIdentifier || !userId) {
+        return res.status(400).json({
+            success: false,
+            message: "Missing required fields: cardIdentifier or userId",
+        });
+    }
+
+
+    try {
+
+        const cardMapping = await getCardByCardIdentifierDB(cardIdentifier);
+
+        if (!cardMapping) {
+            return res.status(404).json({
+                success: false,
+                message: "Card Map not found",
+            });
+        }
+
+
+        const card = await getCardByIdDB(cardMapping?.cardId);
+        if(!card){
+            return res.status(404).json({
+                success: false,
+                message: "Card not found"
+            })
+        } else if (card?.claimed){
+            return res.status(409).json({
+                success: false,
+                message:'Card has already been claimed!'
+            })
+        }
+
+        const user = await getUserByIdDB(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        await updateCardDB(cardMapping.cardId, {
+            userId: userId,
+            claimed: true,
+            status: "active",
+        });
+
+
+        user.cards.push(cardMapping.cardId)
+        await updateUserDB(cardMapping.userId, {
+            cards: user.cards,
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Card successfully claimed",
+            card: {
+                id: cardMapping.cardId,
+                userId: userId,
+                status: "active",
+            },
+        });
+
+
+    } catch (err) {
+        cardsLogger.error("Error claiming device", {error: err});
+        return res.status(500).json({
+            success: false,
+            message: "Error claiming device",
+            error: err.message,
+        });
+    }
+
+}
+
+
+export const deactivateCard = async (req: Request, res: Response) => {
+    const {cardIdentifier, userId} = req.body
+
+    try {
+
+        const user = await getUserByIdDB(userId)
+        if(!user){
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        const card = await getCardByCardIdentifierDB(cardIdentifier)
+        if(!card){
+            return res.status(404).json({
+                success: false,
+                message:'Card not found'
+            })
+        }
+
+        await updateCardDB(card.cardId, {
+            status: "inactive"
+        })
+
+        cardsLogger.info(`Device successfully deactivated!
+             - ${cardIdentifier}
+             User - ${userId}
+        `)
+        return res.status(200).json({
+            success: true,
+            message: 'Device successfully deactivated!'
+        })
+
+    } catch (err) {
+        cardsLogger.error("Error claiming device", {error: err});
+        return res.status(500).json({
+            success: false,
+            message: "Error deactivating device",
+            error: err.message,
+        });
+    }
+}
+
+export const removeCard = async (req: Request, res: Response) => {
+    const {cardIdentifier: cardId, userId} = req.body
+
+    try {
+
+        const {identifier: cardIdentifier} = await getCardHashMappingsByCardIdDB(cardId)
+
+        const user = await getUserByIdDB(userId)
+        if(!user){
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        const updatedCards = user.cards.filter((cardId: string) => cardId !== cardIdentifier);
+        await updateCardDB(cardId,{
+            userId: ''
+        })
+        await updateUserDB(userId, { cards: updatedCards });
+
+        const card = await getCardByCardIdentifierDB(cardIdentifier)
+        if(!card){
+            return res.status(404).json({
+                success: false,
+                message:'Card not found'
+            })
+        }
+
+        await updateCardDB(card.cardId, {
+            status: "inactive",
+            claimed: false
+        })
+
+        cardsLogger.info(`Device successfully soft removed!
+             - ${cardIdentifier}
+             User - ${userId}
+        `)
+        return res.status(200).json({
+            success: true,
+            message: 'Device successfully soft removed!'
+        })
+
+    } catch (err) {
+        cardsLogger.error("Error removing device", {error: err});
+        return res.status(500).json({
+            success: false,
+            message: "Error removing device",
+            error: err.message,
+        });
+    }
+}
+
+export const getCardIdentifier = async (req: Request, res: Response) => {
+    const {cardId} = req.body
+    try {
+        const cardFromHashMap = await getCardHashMappingsByCardIdDB(cardId)
+
+        if (!cardFromHashMap) {
+            return res.status(404).json({
+                success: false,
+                message: 'Card ID not found'
+            })
+        }
+
+        return res.status(200).json({
+            success: true,
+            message: 'Card retrieved successfully!',
+            identifier: cardFromHashMap?.identifier
+        })
+
+    } catch (err) {
+        cardsLogger.error("Error retrieving card identifier", {error: err});
+        return res.status(500).json({
+            success: false,
+            message: "Error retrieving card identifier",
+            error: err.message,
+        });
+    }
+}
+
+
+
 /**
  * Records a tap event for a card and increments the tap count.
  * @async
@@ -227,7 +436,7 @@ export const deleteCard = async (req: Request, res: Response): Promise<void> => 
  */
 
 export const incrementTap = async (req: Request, res: Response) => {
-    const { identifier, source } = req.params;
+    const {identifier, source} = req.params;
     const info: any = req.body;
 
     // Early return for admin sources
@@ -240,19 +449,19 @@ export const incrementTap = async (req: Request, res: Response) => {
 
     if (!identifier) {
         cardsLogger.warn('No identifier provided');
-        return res.status(400).send({ message: 'Identifier is required' });
+        return res.status(400).send({message: 'Identifier is required'});
     }
 
     const cardFromHashTable = await getCardHashMappingByIdDB(identifier);
     if (!cardFromHashTable?.cardId) {
-        cardsLogger.warn('Card mapping not found', { identifier });
-        return res.status(404).send({ message: 'Card not found' });
+        cardsLogger.warn('Card mapping not found', {identifier});
+        return res.status(404).send({message: 'Card not found'});
     }
 
     const card = await getCardByIdDB(cardFromHashTable.cardId);
     if (!card?.status) {
-        cardsLogger.warn('Card not active', { cardId: card?._id });
-        return res.status(400).send({ message: 'Card not active' });
+        cardsLogger.warn('Card not active', {cardId: card?._id});
+        return res.status(400).send({message: 'Card not active'});
     }
 
     try {
@@ -277,8 +486,8 @@ export const incrementTap = async (req: Request, res: Response) => {
 
         const updatedCard = await updateCardDB(card._id, updatedTapData);
         if (!updatedCard) {
-            cardsLogger.error('Card update failed', { cardId: card._id });
-            return res.status(400).send({ message: 'Unable to update card taps' });
+            cardsLogger.error('Card update failed', {cardId: card._id});
+            return res.status(400).send({message: 'Unable to update card taps'});
         }
 
         cardsLogger.info('Tap recorded successfully', {
@@ -316,38 +525,59 @@ export const incrementTap = async (req: Request, res: Response) => {
  *   "cardId": "card123"
  * }
  */
-export const toggleCard = async (req: Request, res: Response) => {
-    const cardId: string = req.params.cardId;
 
-    if (cardId) {
-        const card = await getCardByIdDB(cardId);
+//TODO: May be deprecated and needs to be revisited
+export const toggleCard = async (req: Request, res: Response) => {
+    // const cardId: string = req.params.cardId;
+    const {cardIdentifier, userId} = req.body
+
+    const user = await getUserByIdDB(userId)
+    const cardFromDB = await getCardByCardIdentifierDB(cardIdentifier)
+    if(!user){
+        return res.status(404).json({
+            success: false,
+            message: "User not found",
+        });
+    }
+
+    if (cardIdentifier) {
+
+        const card = await getCardByIdDB(cardFromDB?.cardId);
         let status = card?.status;
 
         let updatedStatus: { status: "active" | "inactive" } = {
             status: status === "active" ? "inactive" : "active"
         };
 
+        if(!card){
+            return res.status(404).json({
+                success: false,
+                message:'Card not found'
+            })
+        }
+
         try {
-            const updatedCard = await updateCardDB(cardId, updatedStatus);
+            const updatedCard = await updateCardDB(cardFromDB?.cardId, updatedStatus);
 
             if (!updatedCard) {
                 cardsLogger.error('Card not found');
-                res.status(400).send({ message: 'Unable to update card status' });
+                res.status(400).send({success: false, message: 'Unable to update card status'});
             } else {
-                res.status(200).send({
+                return res.status(200).send({
+                    success: true,
                     message: `Card status updated to ${updatedStatus.status}`,
                     status: updatedCard.status
                 });
             }
         } catch (err) {
-            cardsLogger.error('Error updating card status', { error: err });
-            res.status(500).send({
+            cardsLogger.error('Error updating card status', {error: err});
+            return res.status(500).send({
                 message: 'Error updating card status',
                 error: err
             });
         }
     } else {
-        res.status(400).send({ message: 'Card ID is required' });
+        res.status(400).send({message: 'Card ID is required'});
     }
 };
 

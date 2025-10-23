@@ -1,5 +1,13 @@
 import {
-    createCard, getCard, updateCard, deleteCard, aggregateCardData,
+    createCard,
+    getCard,
+    updateCard,
+    deleteCard,
+    aggregateCardData,
+    claimDevice,
+    deactivateCard,
+    removeCard,
+    getCardIdentifier, toggleCard,
 } from '../index';
 
 const express = require('express');
@@ -91,6 +99,11 @@ card.put('/incrementTap/:identifier/:source?', (req: any, res: any, next: any) =
     const {incrementTap} = require('../index');
     return incrementTap(req, res, next);
 });
+
+card.post('/claim-device', claimDevice);
+card.post('/toggle-device', toggleCard);
+card.post('/remove-device', removeCard);
+card.post('/get-identifier', getCardIdentifier)
 
 // Currently commented out toggle route
 // card.put('/toggle/:cardId', toggleCard)

@@ -953,7 +953,7 @@ export const updateUserDB = async (userId: string, updatedUser: Partial<UserData
             {"upsert": false}
         );
 
-        dbLogger.info('User updated:', result.upsertedId);
+        dbLogger.info('User(s) updated: ', result.modifiedCount);
         return result;
 
     } catch (error) {
@@ -2037,6 +2037,27 @@ export const listCardHashMappingsDB = async () => {
     }
 };
 
+export const getCardByCardIdentifierDB = async (cardIdentifier: string) => {
+    const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+    try {
+        dbLogger.info("Connecting to HashMapping Database");
+        await client.connect();
+        const db = client.db(dbname);
+
+        const cardHashMapping = await db.collection('cardHashMappings')
+            .findOne({identifier: cardIdentifier});
+
+        dbLogger.info(`Card found: ${cardHashMapping?.identifier.toString()}`);
+        return cardHashMapping;
+    } catch (error) {
+        dbLogger.error({ message: 'Error retrieving CardHashMapping by cardId', error });
+        return null;
+    } finally {
+        await client.close();
+        dbLogger.info("Connection closed");
+    }
+}
+
 /**
  * Creates an activity record.
  * @async
@@ -2342,6 +2363,8 @@ export const getUserLastTapDB = async (userId: string): Promise<string> => {
 //     const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
 //
 // }
+
+
 
 /**
  * Aggregates data across collections for a card.
