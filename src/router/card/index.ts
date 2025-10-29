@@ -1,20 +1,56 @@
 import {Request, Response} from 'express';
 import logger from '../../logger/logger';
 import {
-    aggregateDataDB,
+    aggregateDataDB, createBusinessDB,
     createCardDB,
     createHashMappingDB,
     deleteCardDB, getCardByCardIdentifierDB,
     getCardByIdDB, getCardHashMappingByIdDB, getCardHashMappingsByCardIdDB, getUserByIdDB,
-    updateCardDB, updateUserDB
+    updateCardDB, updateCardHashMappingsDB, updateUserDB
 } from "../../database";
-import {Card, Tap} from "../../common/types";
+import {BusinessData, Card, Tap} from "../../common/types";
 import {customAlphabet} from "nanoid";
 import {nolookalikes} from "nanoid-dictionary";
 import hashHandler from "../../utils/cardHashMapping";
 import {verifyBusinessId} from "../../utils/verifyBusinessId";
 import {getUserById} from "../user";
 import card from "./routes";
+import {ObjectId} from "mongodb";
+
+
+export const initializeBusinessTemplate: BusinessData = {
+    name: "",
+    industry: "",
+    address: {
+        street: "",
+        city: "",
+        state: "",
+        postalCode: "",
+        country: "",
+        label:""
+    },
+    website: "",
+    contactEmail: "",
+    phone: "",
+    socials: [
+        {
+            userId:"",
+            businessId:"",
+            profileName: "",
+            platform: "",
+            profileUrl: "",
+            created_at:"",
+            updated_at:""
+        },
+    ],
+    description: "",
+    logo: {  },
+    userId: "",
+    createdAt: "",
+    updatedAt: "",
+};
+
+
 
 const cardsLogger = logger.child({context: 'cardsService'});
 /**
@@ -200,6 +236,7 @@ export const deleteCard = async (req: Request, res: Response): Promise<void> => 
 };
 
 export const claimDevice = async (req: Request, res: Response) => {
+
     const {cardIdentifier, userId} = req.body
 
     if (!cardIdentifier || !userId) {
@@ -208,7 +245,6 @@ export const claimDevice = async (req: Request, res: Response) => {
             message: "Missing required fields: cardIdentifier or userId",
         });
     }
-
 
     try {
 
@@ -221,7 +257,6 @@ export const claimDevice = async (req: Request, res: Response) => {
             });
         }
 
-
         const card = await getCardByIdDB(cardMapping?.cardId);
         if(!card){
             return res.status(404).json({
@@ -231,7 +266,7 @@ export const claimDevice = async (req: Request, res: Response) => {
         } else if (card?.claimed){
             return res.status(409).json({
                 success: false,
-                message:'Card has already been claimed!'
+                message: 'Card has already been claimed!'
             })
         }
 
@@ -249,11 +284,16 @@ export const claimDevice = async (req: Request, res: Response) => {
             status: "active",
         });
 
+        await updateCardHashMappingsDB(cardMapping._id, {
+            userId: userId
+        })
 
         user.cards.push(cardMapping.cardId)
-        await updateUserDB(cardMapping.userId, {
+        await updateUserDB(user.userId, {
             cards: user.cards,
         });
+
+        await createBusinessDB(initializeBusinessTemplate)
 
         return res.status(200).json({
             success: true,
@@ -262,6 +302,7 @@ export const claimDevice = async (req: Request, res: Response) => {
                 id: cardMapping.cardId,
                 userId: userId,
                 status: "active",
+                userCards: user.cards
             },
         });
 
@@ -326,8 +367,8 @@ export const removeCard = async (req: Request, res: Response) => {
     const {cardIdentifier: cardId, userId} = req.body
 
     try {
-
-        const {identifier: cardIdentifier} = await getCardHashMappingsByCardIdDB(cardId)
+        const cardHashMapResult = await getCardHashMappingsByCardIdDB(cardId)
+        const {_id: hashId, identifier: cardIdentifier} = cardHashMapResult
 
         const user = await getUserByIdDB(userId)
         if(!user){
@@ -337,10 +378,7 @@ export const removeCard = async (req: Request, res: Response) => {
             });
         }
 
-        const updatedCards = user.cards.filter((cardId: string) => cardId !== cardIdentifier);
-        await updateCardDB(cardId,{
-            userId: ''
-        })
+        const updatedCards = user.cards.filter((cardId: string) => cardId !== cardId);
         await updateUserDB(userId, { cards: updatedCards });
 
         const card = await getCardByCardIdentifierDB(cardIdentifier)
@@ -351,15 +389,17 @@ export const removeCard = async (req: Request, res: Response) => {
             })
         }
 
-        await updateCardDB(card.cardId, {
+        await updateCardDB(cardId,{
+            userId: '',
             status: "inactive",
             claimed: false
         })
 
-        cardsLogger.info(`Device successfully soft removed!
-             - ${cardIdentifier}
-             User - ${userId}
-        `)
+        await updateCardHashMappingsDB(hashId, {
+            userId: ''
+        })
+
+        cardsLogger.info(`Device successfully soft removed! - ${cardIdentifier} | User - ${userId}`)
         return res.status(200).json({
             success: true,
             message: 'Device successfully soft removed!'

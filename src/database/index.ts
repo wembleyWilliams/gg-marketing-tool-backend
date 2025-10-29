@@ -1969,7 +1969,7 @@ export const updateCardHashMappingsDB = async (mappingId: string, updatedCardHas
         const db = client.db(dbname);
 
         const result = await db.collection('cardHashMappings').updateOne(
-            { "_id": mappingId },
+            { "_id": new ObjectId(mappingId) },
             { $set: updatedCardHashMapping },
             { upsert: false }
         );
@@ -2388,18 +2388,40 @@ export const aggregateDataDB = async (identifier: string) => {
 
             const result = await db.collection('cards').aggregate([
                 {
-                    $match: { _id: new ObjectId(cardId) } // Ensure `cardId` matches type and value
+                    $match: { _id: new ObjectId(cardId) }
                 },
                 {
                     $addFields: {
-                        convertedBusinessId: { $toObjectId: "$businessId" }, // Convert string `businessId` to ObjectId
-                        convertedUserId: { $toObjectId: "$userId" } // Convert string `userId` to ObjectId
+                        convertedBusinessId: {
+                            $cond: {
+                                if: {
+                                    $regexMatch: {
+                                        input: "$businessId",
+                                        regex: /^[a-fA-F0-9]{24}$/ // ✅ Only convert if it looks like a valid ObjectId
+                                    }
+                                },
+                                then: { $toObjectId: "$businessId" },
+                                else: null
+                            }
+                        },
+                        convertedUserId: {
+                            $cond: {
+                                if: {
+                                    $regexMatch: {
+                                        input: "$userId",
+                                        regex: /^[a-fA-F0-9]{24}$/
+                                    }
+                                },
+                                then: { $toObjectId: "$userId" },
+                                else: null
+                            }
+                        }
                     }
                 },
                 {
                     $lookup: {
                         from: "businesses",
-                        localField: "convertedBusinessId", // Use converted field
+                        localField: "convertedBusinessId",
                         foreignField: "_id",
                         as: "businessData"
                     }
@@ -2407,7 +2429,7 @@ export const aggregateDataDB = async (identifier: string) => {
                 {
                     $lookup: {
                         from: "users",
-                        localField: "convertedUserId", // Use converted field
+                        localField: "convertedUserId",
                         foreignField: "_id",
                         as: "userData"
                     }
@@ -2415,7 +2437,7 @@ export const aggregateDataDB = async (identifier: string) => {
                 {
                     $lookup: {
                         from: "roles",
-                        localField: "convertedUserId", // Use converted field
+                        localField: "convertedUserId",
                         foreignField: "userId",
                         as: "roleData"
                     }

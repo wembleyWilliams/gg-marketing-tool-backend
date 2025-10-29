@@ -127,7 +127,7 @@ export interface Card {
  * @property {string} updatedAt - Last update timestamp
  */
 export interface BusinessData {
-    _id: string;
+    _id?: string;
     name: string;
     industry: string;
     address: Address;
