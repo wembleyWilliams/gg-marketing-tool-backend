@@ -8,47 +8,11 @@ import {
     getCardByIdDB, getCardHashMappingByIdDB, getCardHashMappingsByCardIdDB, getUserByIdDB,
     updateCardDB, updateCardHashMappingsDB, updateUserDB
 } from "../../database";
-import {BusinessData, Card, Tap} from "../../common/types";
+import {BusinessData, Tap} from "../../common/types";
 import {customAlphabet} from "nanoid";
 import {nolookalikes} from "nanoid-dictionary";
 import hashHandler from "../../utils/cardHashMapping";
 import {verifyBusinessId} from "../../utils/verifyBusinessId";
-import {getUserById} from "../user";
-import card from "./routes";
-import {ObjectId} from "mongodb";
-
-
-export const initializeBusinessTemplate: BusinessData = {
-    name: "",
-    industry: "",
-    address: {
-        street: "",
-        city: "",
-        state: "",
-        postalCode: "",
-        country: "",
-        label:""
-    },
-    website: "",
-    contactEmail: "",
-    phone: "",
-    socials: [
-        {
-            userId:"",
-            businessId:"",
-            profileName: "",
-            platform: "",
-            profileUrl: "",
-            created_at:"",
-            updated_at:""
-        },
-    ],
-    description: "",
-    logo: {  },
-    userId: "",
-    createdAt: "",
-    updatedAt: "",
-};
 
 
 
@@ -292,6 +256,38 @@ export const claimDevice = async (req: Request, res: Response) => {
         await updateUserDB(user.userId, {
             cards: user.cards,
         });
+
+        const initializeBusinessTemplate: BusinessData = {
+            userId: userId,
+            name: "",
+            industry: "",
+            address: {
+                street: "",
+                city: "",
+                state: "",
+                postalCode: "",
+                country: "",
+                label:""
+            },
+            website: "",
+            contactEmail: "",
+            phone: "",
+            socials: [
+                {
+                    userId:"",
+                    businessId:"",
+                    profileName: "",
+                    platform: "",
+                    profileUrl: "",
+                    created_at:"",
+                    updated_at:""
+                },
+            ],
+            description: "",
+            logo: {  },
+            createdAt: "",
+            updatedAt: "",
+        };
 
         await createBusinessDB(initializeBusinessTemplate)
 
